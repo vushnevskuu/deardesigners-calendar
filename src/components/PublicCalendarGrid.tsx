@@ -185,19 +185,7 @@ export function PublicCalendarGrid({
                     </span>
                   )}
                 </div>
-                {events.length === 0 ? (
-                  <div
-                    className="flex items-center justify-center text-center text-[11px] leading-tight"
-                    style={{
-                      flex: "1 1 auto",
-                      minHeight: 0,
-                      color: "var(--dd-muted)",
-                      overflow: "hidden",
-                    }}
-                  >
-                    —
-                  </div>
-                ) : (
+                {events.length === 0 ? null : (
                   <div
                     style={{
                       flex: "1 1 auto",
