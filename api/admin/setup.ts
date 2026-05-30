@@ -1,32 +1,29 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { hasPostgres, sql } from "../_lib/db";
+import { hasPostgres, getSql } from "../_lib/db";
 
 // POST /api/admin/setup
 // Идемпотентно создаёт таблицу events и индексы.
-// Защищено заголовком X-Admin-Secret = env ADMIN_SECRET.
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "method_not_allowed" });
-    return;
-  }
-
+export async function POST(request: Request): Promise<Response> {
   const secret = process.env.ADMIN_SECRET;
   if (!secret) {
-    res.status(500).json({ error: "admin_secret_not_configured" });
-    return;
+    return Response.json(
+      { error: "admin_secret_not_configured" },
+      { status: 500 },
+    );
   }
-  if (req.headers["x-admin-secret"] !== secret) {
-    res.status(401).json({ error: "bad_secret" });
-    return;
+  if (request.headers.get("x-admin-secret") !== secret) {
+    return Response.json({ error: "bad_secret" }, { status: 401 });
   }
 
   if (!hasPostgres()) {
-    res.status(503).json({ error: "postgres_not_configured" });
-    return;
+    return Response.json(
+      { error: "postgres_not_configured" },
+      { status: 503 },
+    );
   }
 
   try {
+    const sql = getSql();
     await sql`
       CREATE TABLE IF NOT EXISTS events (
         id            TEXT PRIMARY KEY,
@@ -57,11 +54,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       CREATE INDEX IF NOT EXISTS events_publish_idx
         ON events (publish_status, visibility)
     `;
-    res.status(200).json({ ok: true });
+    return Response.json({ ok: true }, { status: 200 });
   } catch (err) {
-    res.status(500).json({
-      error: "db_error",
-      message: err instanceof Error ? err.message : "unknown",
-    });
+    return Response.json(
+      {
+        error: "db_error",
+        message: err instanceof Error ? err.message : "unknown",
+      },
+      { status: 500 },
+    );
   }
 }

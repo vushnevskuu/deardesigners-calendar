@@ -1,46 +1,48 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-
 // POST /api/admin/set-webhook
-// Регистрирует webhook у Telegram. Использует env TELEGRAM_BOT_TOKEN
-// и WEBHOOK_SECRET. Защищено X-Admin-Secret = env ADMIN_SECRET.
-//
-// Body (необязательное):
-//   { "url": "https://deardesigners-calendar.vercel.app/api/tg-webhook" }
-// Если не передавать — соберём URL из заголовков запроса.
+// Регистрирует webhook у Telegram. Защищено X-Admin-Secret.
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "method_not_allowed" });
-    return;
-  }
-
+export async function POST(request: Request): Promise<Response> {
   const adminSecret = process.env.ADMIN_SECRET;
   if (!adminSecret) {
-    res.status(500).json({ error: "admin_secret_not_configured" });
-    return;
+    return Response.json(
+      { error: "admin_secret_not_configured" },
+      { status: 500 },
+    );
   }
-  if (req.headers["x-admin-secret"] !== adminSecret) {
-    res.status(401).json({ error: "bad_secret" });
-    return;
+  if (request.headers.get("x-admin-secret") !== adminSecret) {
+    return Response.json({ error: "bad_secret" }, { status: 401 });
   }
 
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
-    res.status(500).json({ error: "telegram_bot_token_not_configured" });
-    return;
+    return Response.json(
+      { error: "telegram_bot_token_not_configured" },
+      { status: 500 },
+    );
   }
 
   const webhookSecret = process.env.WEBHOOK_SECRET;
   if (!webhookSecret) {
-    res.status(500).json({ error: "webhook_secret_not_configured" });
-    return;
+    return Response.json(
+      { error: "webhook_secret_not_configured" },
+      { status: 500 },
+    );
   }
 
-  const body = (req.body || {}) as { url?: string };
+  let body: { url?: string } = {};
+  try {
+    if (request.headers.get("content-type")?.includes("application/json")) {
+      body = (await request.json()) as { url?: string };
+    }
+  } catch {
+    body = {};
+  }
+
   let url = body.url;
   if (!url) {
-    const host = req.headers["x-forwarded-host"] || req.headers.host;
-    const proto = req.headers["x-forwarded-proto"] || "https";
+    const fwdHost = request.headers.get("x-forwarded-host");
+    const host = fwdHost || new URL(request.url).host;
+    const proto = request.headers.get("x-forwarded-proto") || "https";
     url = `${proto}://${host}/api/tg-webhook`;
   }
 
@@ -64,11 +66,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
     );
     const tgData = await tgResp.json();
-    res.status(200).json({ ok: true, url, telegram: tgData });
+    return Response.json({ ok: true, url, telegram: tgData }, { status: 200 });
   } catch (err) {
-    res.status(500).json({
-      error: "telegram_error",
-      message: err instanceof Error ? err.message : "unknown",
-    });
+    return Response.json(
+      {
+        error: "telegram_error",
+        message: err instanceof Error ? err.message : "unknown",
+      },
+      { status: 500 },
+    );
   }
 }

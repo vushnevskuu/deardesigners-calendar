@@ -1,19 +1,30 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { put } from "@vercel/blob";
-import { hasPostgres, sql } from "./_lib/db";
+import { hasPostgres, getSql } from "./_lib/db";
 import { parsePost } from "./_lib/parser";
 
 // POST /api/tg-webhook
-// Принимает Telegram update (message или channel_post). Парсит, кладёт
-// картинку в Vercel Blob, сохраняет событие в Postgres.
-//
-// Безопасность: TG отправляет header X-Telegram-Bot-Api-Secret-Token со
-// значением, которое мы передавали в setWebhook(secret_token). Сравниваем
-// его с env WEBHOOK_SECRET.
+// Принимает Telegram update (message / channel_post). Парсит, заливает
+// картинку в Vercel Blob, делает upsert в Postgres.
 
-type TgPhoto = { file_id: string; file_unique_id: string; width: number; height: number; file_size?: number };
-type TgUser = { id: number; is_bot: boolean; first_name?: string; username?: string };
-type TgChat = { id: number; type: string; username?: string; title?: string };
+type TgPhoto = {
+  file_id: string;
+  file_unique_id: string;
+  width: number;
+  height: number;
+  file_size?: number;
+};
+type TgUser = {
+  id: number;
+  is_bot: boolean;
+  first_name?: string;
+  username?: string;
+};
+type TgChat = {
+  id: number;
+  type: string;
+  username?: string;
+  title?: string;
+};
 type TgMessage = {
   message_id: number;
   date: number;
@@ -47,7 +58,6 @@ function buildTelegramPostUrl(chat: TgChat, messageId: number): string | undefin
   if (chat.username) {
     return `https://t.me/${chat.username}/${messageId}`;
   }
-  // Приватный канал/чат — public ссылка вида https://t.me/c/<id_without_-100>/<msg_id>
   const idStr = String(chat.id);
   if (idStr.startsWith("-100")) {
     return `https://t.me/c/${idStr.slice(4)}/${messageId}`;
@@ -55,8 +65,6 @@ function buildTelegramPostUrl(chat: TgChat, messageId: number): string | undefin
   return undefined;
 }
 
-// Скачивает фото через Telegram Bot API и кладёт в Vercel Blob.
-// Возвращает публичный URL картинки в Blob — он не истекает.
 async function downloadPhotoToBlob(
   fileId: string,
   botToken: string,
@@ -93,53 +101,50 @@ async function downloadPhotoToBlob(
 }
 
 export const config = {
-  // Webhook должен отвечать быстро. 10 секунд хватит на скачивание картинки
-  // среднего размера + Postgres insert.
+  // Webhook должен ответить быстро. 15 секунд хватает на скачивание
+  // средней картинки + Postgres insert.
   maxDuration: 15,
 };
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "method_not_allowed" });
-    return;
-  }
-
+export async function POST(request: Request): Promise<Response> {
   const secret = process.env.WEBHOOK_SECRET;
   if (secret) {
-    const got = req.headers["x-telegram-bot-api-secret-token"];
+    const got = request.headers.get("x-telegram-bot-api-secret-token");
     if (got !== secret) {
-      res.status(401).json({ error: "bad_secret" });
-      return;
+      return Response.json({ error: "bad_secret" }, { status: 401 });
     }
   }
 
   if (!hasPostgres()) {
-    res.status(503).json({ error: "postgres_not_configured" });
-    return;
+    return Response.json(
+      { error: "postgres_not_configured" },
+      { status: 503 },
+    );
   }
 
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
-  // Без токена не сможем тянуть картинки. Текст события всё равно сохраним.
 
-  const update = req.body as TgUpdate;
+  let update: TgUpdate;
+  try {
+    update = (await request.json()) as TgUpdate;
+  } catch {
+    return Response.json({ error: "bad_json" }, { status: 400 });
+  }
+
   const msg = pickMessage(update);
   if (!msg) {
-    res.status(200).json({ ok: true, ignored: "no_message" });
-    return;
+    return Response.json({ ok: true, ignored: "no_message" }, { status: 200 });
   }
 
   const text = (msg.text ?? msg.caption ?? "").trim();
-  // Если поста без текста — игнорируем (картинку без подписи нет смысла создавать).
   if (!text) {
-    res.status(200).json({ ok: true, ignored: "empty_text" });
-    return;
+    return Response.json({ ok: true, ignored: "empty_text" }, { status: 200 });
   }
 
   const postedAt = new Date(msg.date * 1000);
   const parsed = parsePost(text, postedAt);
   const telegramPostUrl = buildTelegramPostUrl(msg.chat, msg.message_id);
 
-  // Берём самую большую фотку (последнюю в массиве photo).
   let coverUrl: string | null = null;
   if (msg.photo && msg.photo.length > 0 && botToken) {
     const biggest = msg.photo[msg.photo.length - 1];
@@ -147,11 +152,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     coverUrl = await downloadPhotoToBlob(biggest.file_id, botToken, hint);
   }
 
-  // ID события — стабильный, основан на chat+message, чтобы апдейты могли
-  // обновить ту же запись.
   const id = `tg_${msg.chat.id}_${msg.message_id}`.replace(/[^a-z0-9_]/gi, "_");
 
   try {
+    const sql = getSql();
     await sql`
       INSERT INTO events (
         id, date, time, title, description, type,
@@ -173,18 +177,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         updated_at     = NOW();
     `;
 
-    res.status(200).json({
-      ok: true,
-      id,
-      date: parsed.date,
-      time: parsed.time ?? null,
-      title: parsed.title,
-      coverUrl,
-    });
+    return Response.json(
+      {
+        ok: true,
+        id,
+        date: parsed.date,
+        time: parsed.time ?? null,
+        title: parsed.title,
+        coverUrl,
+      },
+      { status: 200 },
+    );
   } catch (err) {
-    res.status(500).json({
-      error: "db_error",
-      message: err instanceof Error ? err.message : "unknown",
-    });
+    return Response.json(
+      {
+        error: "db_error",
+        message: err instanceof Error ? err.message : "unknown",
+      },
+      { status: 500 },
+    );
   }
 }

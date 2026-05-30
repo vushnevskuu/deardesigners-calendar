@@ -1,35 +1,33 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { hasPostgres, sql } from "./_lib/db";
+import { hasPostgres, getSql } from "./_lib/db";
 import { rowToDto, type EventRow } from "./_lib/types";
 
 // GET /api/events?month=YYYY-MM&includeDrafts=0
-// Отдаёт события месяца. По дефолту — только published+public/members_hint.
-// Если БД не подключена — отдаём 503 чтобы фронт откатился на демо.
+// Web API формат — работает как с Node, так и с Edge Runtime.
 
 const MONTH_RE = /^\d{4}-\d{2}$/;
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  if (req.method === "OPTIONS") {
-    res.status(200).end();
-    return;
-  }
-  if (req.method !== "GET") {
-    res.status(405).json({ error: "method_not_allowed" });
-    return;
-  }
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+};
 
+export async function OPTIONS(): Promise<Response> {
+  return new Response(null, { status: 200, headers: corsHeaders });
+}
+
+export async function GET(request: Request): Promise<Response> {
   if (!hasPostgres()) {
-    // Нет БД — возвращаем «не настроено», фронт сам пойдёт на demo.
-    res.status(503).json({ error: "postgres_not_configured" });
-    return;
+    return Response.json(
+      { error: "postgres_not_configured" },
+      { status: 503, headers: corsHeaders },
+    );
   }
 
-  const monthRaw = (req.query.month as string | undefined) ?? "";
+  const url = new URL(request.url);
+  const monthRaw = url.searchParams.get("month") ?? "";
   const includeDrafts =
-    String(req.query.includeDrafts ?? "") === "1" ||
-    String(req.query.includeDrafts ?? "") === "true";
+    url.searchParams.get("includeDrafts") === "1" ||
+    url.searchParams.get("includeDrafts") === "true";
 
   let monthKey = monthRaw;
   if (!MONTH_RE.test(monthKey)) {
@@ -38,40 +36,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const [yyyy, mm] = monthKey.split("-").map((s) => parseInt(s, 10));
-  // Первый и последний день месяца включительно (для DATE-сравнения).
   const monthStart = `${yyyy}-${String(mm).padStart(2, "0")}-01`;
-  // last day = первый день следующего месяца минус 1 — Postgres делает сам.
 
   try {
-    const rows = includeDrafts
-      ? (
-          await sql<EventRow>`
-            SELECT * FROM events
-            WHERE date >= ${monthStart}::date
-              AND date < (${monthStart}::date + INTERVAL '1 month')
-            ORDER BY date ASC, time NULLS LAST
-          `
-        ).rows
-      : (
-          await sql<EventRow>`
-            SELECT * FROM events
-            WHERE date >= ${monthStart}::date
-              AND date < (${monthStart}::date + INTERVAL '1 month')
-              AND publish_status = 'published'
-              AND visibility <> 'private'
-            ORDER BY date ASC, time NULLS LAST
-          `
-        ).rows;
+    const sql = getSql();
+    const rows = (includeDrafts
+      ? ((await sql`
+          SELECT * FROM events
+          WHERE date >= ${monthStart}::date
+            AND date < (${monthStart}::date + INTERVAL '1 month')
+          ORDER BY date ASC, time NULLS LAST
+        `) as unknown as EventRow[])
+      : ((await sql`
+          SELECT * FROM events
+          WHERE date >= ${monthStart}::date
+            AND date < (${monthStart}::date + INTERVAL '1 month')
+            AND publish_status = 'published'
+            AND visibility <> 'private'
+          ORDER BY date ASC, time NULLS LAST
+        `) as unknown as EventRow[]));
 
-    res.setHeader("Cache-Control", "public, max-age=60, s-maxage=60");
-    res.status(200).json({
-      month: monthKey,
-      events: rows.map(rowToDto),
-    });
+    return Response.json(
+      {
+        month: monthKey,
+        events: rows.map(rowToDto),
+      },
+      {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Cache-Control": "public, max-age=60, s-maxage=60",
+        },
+      },
+    );
   } catch (err) {
-    res.status(500).json({
-      error: "db_error",
-      message: err instanceof Error ? err.message : "unknown",
-    });
+    return Response.json(
+      {
+        error: "db_error",
+        message: err instanceof Error ? err.message : "unknown",
+      },
+      { status: 500, headers: corsHeaders },
+    );
   }
 }

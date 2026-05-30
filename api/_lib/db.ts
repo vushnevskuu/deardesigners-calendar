@@ -1,16 +1,32 @@
-import { sql } from "@vercel/postgres";
+import { neon, neonConfig } from "@neondatabase/serverless";
 
-// Проверка что Postgres подключён. Если переменной нет — фронт получит 503,
-// и фронтовый storage сам откатится на demo-данные. Это позволяет работать
-// на Vercel ещё до подключения Marketplace-интеграции БД.
+// Neon serverless через Vercel Marketplace ставит в env переменные:
+//   - DATABASE_URL          (predefined recommended)
+//   - POSTGRES_URL          (legacy совместимость, тоже подходит)
+// Берём первую найденную.
+
+neonConfig.fetchConnectionCache = true;
+
 export function hasPostgres(): boolean {
-  return Boolean(
+  return Boolean(getDatabaseUrl());
+}
+
+function getDatabaseUrl(): string | undefined {
+  return (
+    process.env.DATABASE_URL ||
     process.env.POSTGRES_URL ||
-      process.env.POSTGRES_PRISMA_URL ||
-      process.env.POSTGRES_URL_NON_POOLING,
+    process.env.POSTGRES_URL_NON_POOLING
   );
 }
 
-// Один общий объект клиента — sql<T> проверяет что POSTGRES_URL задан, и
-// поднимает ошибку с понятным текстом, если нет.
-export { sql };
+// Один общий tagged-template SQL клиент. neon(url)`...` возвращает Promise<rows>.
+// Используется как: const rows = await sql`SELECT ...`;
+// Для query c прыгающими параметрами поддерживается template-литерал и
+// безопасное экранирование значений.
+export function getSql() {
+  const url = getDatabaseUrl();
+  if (!url) {
+    throw new Error("postgres_not_configured");
+  }
+  return neon(url);
+}

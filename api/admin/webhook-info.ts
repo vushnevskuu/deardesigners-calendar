@@ -1,37 +1,36 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+// GET /api/admin/webhook-info — статус webhook'а у Telegram.
 
-// GET /api/admin/webhook-info — статус webhook'а Telegram (для отладки).
-// Защищено X-Admin-Secret.
-
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "GET") {
-    res.status(405).json({ error: "method_not_allowed" });
-    return;
-  }
+export async function GET(request: Request): Promise<Response> {
   const adminSecret = process.env.ADMIN_SECRET;
   if (!adminSecret) {
-    res.status(500).json({ error: "admin_secret_not_configured" });
-    return;
+    return Response.json(
+      { error: "admin_secret_not_configured" },
+      { status: 500 },
+    );
   }
-  if (req.headers["x-admin-secret"] !== adminSecret) {
-    res.status(401).json({ error: "bad_secret" });
-    return;
+  if (request.headers.get("x-admin-secret") !== adminSecret) {
+    return Response.json({ error: "bad_secret" }, { status: 401 });
   }
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) {
-    res.status(500).json({ error: "telegram_bot_token_not_configured" });
-    return;
+    return Response.json(
+      { error: "telegram_bot_token_not_configured" },
+      { status: 500 },
+    );
   }
   try {
     const tgResp = await fetch(
       `https://api.telegram.org/bot${token}/getWebhookInfo`,
     );
     const data = await tgResp.json();
-    res.status(200).json(data);
+    return Response.json(data, { status: 200 });
   } catch (err) {
-    res.status(500).json({
-      error: "telegram_error",
-      message: err instanceof Error ? err.message : "unknown",
-    });
+    return Response.json(
+      {
+        error: "telegram_error",
+        message: err instanceof Error ? err.message : "unknown",
+      },
+      { status: 500 },
+    );
   }
 }
