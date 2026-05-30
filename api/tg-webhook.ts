@@ -1,6 +1,6 @@
 import { put } from "@vercel/blob";
-import { hasPostgres, getSql } from "./_lib/db";
-import { parsePost } from "./_lib/parser";
+import { hasPostgres, getSql } from "./_lib/db.js";
+import { parsePost } from "./_lib/parser.js";
 
 // POST /api/tg-webhook
 // Принимает Telegram update (message / channel_post). Парсит, заливает

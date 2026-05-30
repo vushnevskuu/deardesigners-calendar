@@ -2,7 +2,7 @@
 // src/lib/chatParser.ts — без зависимости от nanoid и без MonthlyAutofillDraft.
 // Возвращает полностью готовое поле для записи в таблицу events.
 
-import type { EventTypeDb } from "./types";
+import type { EventTypeDb } from "./types.js";
 
 const MONTHS_RU: Record<string, number> = {
   января: 1,

@@ -1,4 +1,4 @@
-import { hasPostgres, getSql } from "../_lib/db";
+import { hasPostgres, getSql } from "../_lib/db.js";
 
 // POST /api/admin/setup
 // Идемпотентно создаёт таблицу events и индексы.

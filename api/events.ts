@@ -1,5 +1,5 @@
-import { hasPostgres, getSql } from "./_lib/db";
-import { rowToDto, type EventRow } from "./_lib/types";
+import { hasPostgres, getSql } from "./_lib/db.js";
+import { rowToDto, type EventRow } from "./_lib/types.js";
 
 // GET /api/events?month=YYYY-MM&includeDrafts=0
 // Web API формат — работает как с Node, так и с Edge Runtime.
