@@ -1,0 +1,325 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* base palette — без красного, как у deardesigners.club */
+  --dd-bg: #f0ebe3;            /* бежевая полоса как у Тильды-блока */
+  --dd-surface: #ffffff;       /* карточки/панели */
+  --dd-surface-soft: #eeeeee;  /* круги/мягкие плашки */
+  --dd-ink: #000000;
+  --dd-muted: #6e6e6e;
+  --dd-border: #000000;
+  --dd-hairline: rgba(0, 0, 0, 0.12);
+
+  /* акцент свели к чистому контрасту: тёмный inverted и тонкий highlight */
+  --dd-accent: #000000;
+  --dd-accent-soft: #eeeeee;
+  --dd-highlight: #f3f3f3;
+
+  --dd-radius-card: 30px;
+  --dd-radius-pill: 999px;
+  --dd-shadow-soft: 0 1px 0 rgba(0, 0, 0, 0.04);
+  --dd-grid-dot: rgba(0, 0, 0, 0.12);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  background: var(--dd-bg);
+  color: var(--dd-ink);
+  font-family: "Onest", ui-sans-serif, -apple-system, BlinkMacSystemFont,
+    "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  font-feature-settings: "ss01", "ss02";
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+::selection {
+  background: var(--dd-ink);
+  color: #fff;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+@layer components {
+  .dd-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-dd-pill px-5 text-[14px] font-normal transition-colors;
+    height: 40px;
+    border: 0;
+    color: var(--dd-ink);
+    background: var(--dd-surface-soft);
+    letter-spacing: 0;
+  }
+  .dd-btn:hover {
+    background: var(--dd-ink);
+    color: #ffffff;
+  }
+  .dd-btn-primary {
+    background: var(--dd-ink);
+    color: #ffffff;
+  }
+  .dd-btn-primary:hover {
+    background: #1a1a1a;
+    color: #ffffff;
+  }
+  .dd-btn-ghost {
+    background: transparent;
+  }
+  .dd-btn-ghost:hover {
+    background: var(--dd-surface-soft);
+    color: var(--dd-ink);
+  }
+  .dd-btn-sm {
+    height: 34px;
+    padding-left: 14px;
+    padding-right: 14px;
+    font-size: 13px;
+  }
+
+  /* Фирменный CTA: pill с чёрным кругом-стрелкой */
+  .dd-cta {
+    @apply inline-flex items-center gap-3 rounded-dd-pill pl-5 pr-1 text-[14px] font-normal transition-colors;
+    height: 44px;
+    border: 0;
+    color: var(--dd-ink);
+    background: var(--dd-surface-soft);
+  }
+  .dd-cta:hover {
+    background: var(--dd-ink);
+    color: #fff;
+  }
+  .dd-cta:hover .dd-cta__icon {
+    background: #fff;
+    color: var(--dd-ink);
+  }
+  .dd-cta--filled {
+    background: var(--dd-ink);
+    color: #fff;
+  }
+  .dd-cta--filled .dd-cta__icon {
+    background: #fff;
+    color: var(--dd-ink);
+  }
+  .dd-cta--filled:hover {
+    background: #1a1a1a;
+    color: #fff;
+  }
+  .dd-cta--filled:hover .dd-cta__icon {
+    background: #fff;
+    color: var(--dd-ink);
+  }
+  .dd-cta__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    background: var(--dd-ink);
+    color: #fff;
+    font-size: 14px;
+    line-height: 1;
+    transition: background 120ms ease, color 120ms ease;
+  }
+
+  /* Большие круглые стрелки навигации по месяцам — размером с высоту шрифта H1 */
+  .dd-month-arrow {
+    @apply inline-flex items-center justify-center rounded-full transition-colors;
+    width: clamp(56px, 7.2vw, 96px);
+    height: clamp(56px, 7.2vw, 96px);
+    border: 0;
+    color: var(--dd-ink);
+    background: var(--dd-surface-soft);
+  }
+  .dd-month-arrow:hover {
+    background: var(--dd-ink);
+    color: #fff;
+  }
+  .dd-month-arrow svg {
+    width: 42%;
+    height: 42%;
+    min-width: 24px;
+    min-height: 24px;
+  }
+
+  /* Круглая иконочная кнопка (стрелки месяца, ✕) */
+  .dd-icon-btn {
+    @apply inline-flex items-center justify-center rounded-full transition-colors;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    color: var(--dd-ink);
+    background: var(--dd-surface-soft);
+  }
+  .dd-icon-btn:hover {
+    background: var(--dd-ink);
+    color: #fff;
+  }
+  .dd-icon-btn-sm {
+    width: 34px;
+    height: 34px;
+  }
+
+  .dd-chip {
+    @apply inline-flex items-center gap-1.5 rounded-dd-pill px-3 py-1 text-[12px] leading-none;
+    border: 0;
+    color: var(--dd-ink);
+    background: var(--dd-surface-soft);
+  }
+  .dd-chip-soft {
+    @apply inline-flex items-center gap-1.5 rounded-dd-pill px-3 py-1 text-[12px] leading-none;
+    background: var(--dd-surface-soft);
+    color: var(--dd-ink);
+    border: 0;
+  }
+  .dd-chip-dark {
+    @apply inline-flex items-center gap-1.5 rounded-dd-pill px-3 py-1 text-[12px] leading-none;
+    background: var(--dd-ink);
+    color: #fff;
+    border: 0;
+  }
+
+  .dd-surface {
+    background: var(--dd-surface);
+    border: 0;
+    border-radius: var(--dd-radius-card);
+  }
+  .dd-card {
+    background: var(--dd-surface);
+    border: 0;
+    border-radius: var(--dd-radius-card);
+    box-shadow: var(--dd-shadow-soft);
+  }
+  .dd-card-soft {
+    background: var(--dd-surface-soft);
+    border: 0;
+    border-radius: var(--dd-radius-card);
+  }
+
+  .dd-input {
+    @apply w-full rounded-dd-pill bg-transparent px-4 text-[14px] outline-none transition;
+    height: 40px;
+    border: 0;
+    background: var(--dd-surface-soft);
+    color: var(--dd-ink);
+  }
+  .dd-input:focus {
+    background: #e6e6e6;
+  }
+  .dd-input::placeholder {
+    color: var(--dd-muted);
+  }
+  .dd-input-area {
+    @apply w-full rounded-2xl bg-transparent px-4 py-3 text-[14px] outline-none transition;
+    border: 0;
+    background: var(--dd-surface-soft);
+    color: var(--dd-ink);
+    min-height: 96px;
+    resize: vertical;
+  }
+  .dd-input-area:focus {
+    background: #e6e6e6;
+  }
+  .dd-input-area::placeholder {
+    color: var(--dd-muted);
+  }
+  .dd-label {
+    @apply text-[11px] uppercase tracking-[0.14em];
+    color: var(--dd-muted);
+  }
+
+  .dd-paper {
+    background-color: var(--dd-bg);
+  }
+}
+
+.dd-scroll::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+.dd-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 999px;
+}
+.dd-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+.dd-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+}
+
+@keyframes dd-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.dd-anim-in {
+  animation: dd-fade-in 180ms ease-out both;
+}
+
+@keyframes dd-drawer-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes dd-drawer-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.dd-drawer-anim {
+  animation: dd-drawer-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.dd-drawer-anim-left {
+  animation: dd-drawer-in-left 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes dd-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.dd-overlay-anim {
+  animation: dd-overlay-in 180ms ease-out both;
+}
+
+/* Утилитарный класс для select, чтобы native-стрелка не торчала */
+.dd-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='none' stroke='%23000' stroke-width='1.5' d='M1 1.5l5 5 5-5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 38px;
+}
