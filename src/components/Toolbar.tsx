@@ -10,7 +10,6 @@ export function Toolbar() {
   const project = useCalendarStore((s) => s.project);
   const shiftMonthBy = useCalendarStore((s) => s.shiftMonthBy);
   const openEditor = useCalendarStore((s) => s.openEditor);
-  const openMaterials = useCalendarStore((s) => s.openMaterials);
   const openExport = useCalendarStore((s) => s.openExport);
   const importProject = useCalendarStore((s) => s.importProject);
   const importMaterials = useCalendarStore((s) => s.importMaterials);
@@ -59,13 +58,6 @@ export function Toolbar() {
         label: "Собрать месяц из Telegram",
         hint: "Парсер пройдёт по сообщениям чата",
         onClick: () => setAutofillOpen(true),
-      },
-      {
-        id: "materials",
-        kind: "button",
-        label: "Фишки и материалы",
-        hint: "Внутренний архив клуба",
-        onClick: () => openMaterials(),
       },
       { id: "sep-1", kind: "separator" },
       {

@@ -1,13 +1,11 @@
 import { useState, useCallback } from "react";
 import type { GridCell } from "../lib/calendar";
-import type { EventItem, MaterialItem } from "../lib/types";
+import type { EventItem } from "../lib/types";
 import { EventCard } from "./EventCard";
 import { SmartImage } from "./SmartImage";
 import { useCalendarStore } from "../state/calendarStore";
 import { filesFromDropToDataUrl } from "../lib/image";
 import { PlusIcon } from "./icons";
-
-const DD_MATERIAL_MIME = "application/x-dd-material";
 
 function luminance(hex: string | undefined): number {
   if (!hex) return 0;
@@ -23,17 +21,14 @@ function luminance(hex: string | undefined): number {
 type Props = {
   cell: GridCell;
   events: EventItem[];
-  materials: MaterialItem[];
 };
 
-export function CalendarCell({ cell, events, materials }: Props) {
+export function CalendarCell({ cell, events }: Props) {
   const selectedDate = useCalendarStore((s) => s.selectedDate);
   const selectedEventId = useCalendarStore((s) => s.selectedEventId);
   const selectDate = useCalendarStore((s) => s.selectDate);
   const openEditor = useCalendarStore((s) => s.openEditor);
   const attachImageToDate = useCalendarStore((s) => s.attachImageToDate);
-  const dropMaterialOnDate = useCalendarStore((s) => s.dropMaterialOnDate);
-  const dropMaterialOnEvent = useCalendarStore((s) => s.dropMaterialOnEvent);
   const pushToast = useCalendarStore((s) => s.pushToast);
 
   const [dragOver, setDragOver] = useState(false);
@@ -42,17 +37,14 @@ export function CalendarCell({ cell, events, materials }: Props) {
   const overflow = events.length - visible.length;
 
   // Полноразмерная картинка — ровно одно событие raw-image c валидной картинкой
-  // и без текстового контента (заголовок/описание/материалы → обычная карточка).
+  // и без текстового контента (заголовок/описание → обычная карточка).
   const candidate = events.length === 1 ? events[0] : null;
   const candidateUntitled = candidate
     ? !candidate.title?.trim() ||
       candidate.title.trim().toLowerCase() === "без названия"
     : true;
   const candidateNoText =
-    candidate &&
-    candidateUntitled &&
-    !candidate.description?.trim() &&
-    !(candidate.relatedMaterialIds ?? []).length;
+    candidate && candidateUntitled && !candidate.description?.trim();
   const fullRawEvent =
     candidate &&
     candidate.cardStyle === "raw-image" &&
@@ -61,18 +53,16 @@ export function CalendarCell({ cell, events, materials }: Props) {
       ? candidate
       : null;
 
-  const onDragOver = useCallback((e: React.DragEvent) => {
-    if (!cell.inMonth) return;
-    const types = e.dataTransfer.types;
-    const ok =
-      types.includes("Files") ||
-      types.includes(DD_MATERIAL_MIME) ||
-      types.includes("application/x-dd-material");
-    if (!ok) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "copy";
-    setDragOver(true);
-  }, [cell.inMonth]);
+  const onDragOver = useCallback(
+    (e: React.DragEvent) => {
+      if (!cell.inMonth) return;
+      if (!e.dataTransfer.types.includes("Files")) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      setDragOver(true);
+    },
+    [cell.inMonth],
+  );
 
   const onDragLeave = useCallback(() => {
     setDragOver(false);
@@ -83,11 +73,6 @@ export function CalendarCell({ cell, events, materials }: Props) {
       e.preventDefault();
       setDragOver(false);
       if (!cell.inMonth) return;
-      const materialId = e.dataTransfer.getData(DD_MATERIAL_MIME);
-      if (materialId) {
-        dropMaterialOnDate(cell.iso, materialId);
-        return;
-      }
       const files = e.dataTransfer.files;
       if (files && files.length) {
         try {
@@ -102,7 +87,7 @@ export function CalendarCell({ cell, events, materials }: Props) {
         }
       }
     },
-    [cell.inMonth, cell.iso, attachImageToDate, dropMaterialOnDate, pushToast],
+    [cell.inMonth, cell.iso, attachImageToDate, pushToast],
   );
 
   const onCellClick = () => {
@@ -113,24 +98,6 @@ export function CalendarCell({ cell, events, materials }: Props) {
   const onCellDoubleClick = () => {
     if (!cell.inMonth) return;
     openEditor("create", { date: cell.iso });
-  };
-
-  const onCardDropMaterial = (eventId: string) => (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragOver(false);
-    const materialId = e.dataTransfer.getData(DD_MATERIAL_MIME);
-    if (materialId) {
-      dropMaterialOnEvent(eventId, materialId);
-    }
-  };
-
-  const onCardDragOverMaterial = (e: React.DragEvent) => {
-    if (e.dataTransfer.types.includes(DD_MATERIAL_MIME)) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.dataTransfer.dropEffect = "copy";
-    }
   };
 
   if (!cell.inMonth) {
@@ -174,7 +141,7 @@ export function CalendarCell({ cell, events, materials }: Props) {
         ].join(" ")}
         style={{
           aspectRatio: "1 / 1",
-          backgroundColor: fullRawEvent.imageDominantColor ?? "#000000",
+          backgroundColor: fullRawEvent.imageDominantColor ?? "var(--dd-surface)",
           boxShadow: isSelected ? "0 6px 22px rgba(0,0,0,0.18)" : "none",
         }}
       >
@@ -263,96 +230,123 @@ export function CalendarCell({ cell, events, materials }: Props) {
       onDragLeave={onDragLeave}
       onDrop={onDrop}
       className={[
-        "group relative flex flex-col gap-2 rounded-dd-card p-3 transition-all",
+        "group relative rounded-dd-card transition-all",
         dragOver ? "scale-[1.01]" : "",
       ].join(" ")}
       style={{
         aspectRatio: "1 / 1",
+        overflow: "hidden",
         background: dragOver ? "#ececec" : "var(--dd-surface)",
         boxShadow: isSelected ? "0 0 0 2px var(--dd-ink)" : "none",
       }}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-baseline gap-2 leading-none">
-          <span
-            className="text-[22px] font-medium"
-            style={{
-              color: "var(--dd-ink)",
-              letterSpacing: "-0.02em",
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          padding: 12,
+          minWidth: 0,
+          minHeight: 0,
+          overflow: "hidden",
+        }}
+      >
+        <div className="flex items-center justify-between" style={{ flex: "0 0 auto" }}>
+          <div className="flex items-baseline gap-2 leading-none">
+            <span
+              className="text-[22px] font-medium"
+              style={{
+                color: "var(--dd-ink)",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {cell.day}
+            </span>
+            {cell.isToday && (
+              <span
+                className="rounded-full px-2 py-[3px] text-[9px] uppercase tracking-[0.16em] font-medium"
+                style={{ background: "var(--dd-ink)", color: "#ffffff" }}
+              >
+                сегодня
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            aria-label={`Добавить событие на ${cell.day}`}
+            className="dd-icon-btn opacity-0 transition group-hover:opacity-100"
+            style={{ width: 28, height: 28, flex: "0 0 auto" }}
+            onClick={(e) => {
+              e.stopPropagation();
+              openEditor("create", { date: cell.iso });
             }}
           >
-            {cell.day}
-          </span>
-          {cell.isToday && (
-            <span
-              className="rounded-full px-2 py-[3px] text-[9px] uppercase tracking-[0.16em] font-medium"
-              style={{ background: "var(--dd-ink)", color: "#ffffff" }}
-            >
-              сегодня
-            </span>
-          )}
+            <PlusIcon size={12} />
+          </button>
         </div>
-        <button
-          type="button"
-          aria-label={`Добавить событие на ${cell.day}`}
-          className="dd-icon-btn opacity-0 transition group-hover:opacity-100"
-          style={{ width: 28, height: 28 }}
-          onClick={(e) => {
-            e.stopPropagation();
-            openEditor("create", { date: cell.iso });
-          }}
-        >
-          <PlusIcon size={12} />
-        </button>
-      </div>
 
-      {events.length === 0 ? (
-        <div
-          className="flex flex-1 items-center justify-center text-center text-[11px] leading-tight"
-          style={{
-            color: "var(--dd-muted)",
-            background: "transparent",
-            padding: "10px 8px",
-          }}
-        >
-          {dragOver ? "Отпусти, чтобы добавить" : "Перетащи картинку или добавь событие"}
-        </div>
-      ) : (
-        <div className="flex flex-1 flex-col gap-2">
-          {visible.map((ev) => (
-            <EventCard
-              key={ev.id}
-              event={ev}
-              materials={materials}
-              selected={selectedEventId === ev.id}
-              onClick={(e) => {
-                e.stopPropagation();
-                selectDate(cell.iso);
-                openEditor("edit", { eventId: ev.id });
-              }}
-              onDragOverMaterial={onCardDragOverMaterial}
-              onDropMaterial={onCardDropMaterial(ev.id)}
-            />
-          ))}
-          {overflow > 0 && (
-            <button
-              type="button"
-              className="rounded-full px-3 py-1 text-[11px]"
-              style={{
-                background: "var(--dd-surface-soft)",
-                color: "var(--dd-ink)",
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                selectDate(cell.iso);
-                openEditor("edit", { eventId: events[3].id });
-              }}
-            >
-              +{overflow} ещё
-            </button>
-          )}
-        </div>
-      )}
+        {events.length === 0 ? (
+          <div
+            className="flex items-center justify-center text-center text-[11px] leading-tight"
+            style={{
+              flex: "1 1 auto",
+              minHeight: 0,
+              color: "var(--dd-muted)",
+              background: "transparent",
+              padding: "10px 8px",
+              overflow: "hidden",
+            }}
+          >
+            {dragOver ? "Отпусти, чтобы добавить" : "Перетащи картинку или добавь событие"}
+          </div>
+        ) : (
+          <div
+            style={{
+              flex: "1 1 auto",
+              minHeight: 0,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              overflow: "hidden",
+            }}
+          >
+            {visible.map((ev) => (
+              <EventCard
+                key={ev.id}
+                event={ev}
+                selected={selectedEventId === ev.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  selectDate(cell.iso);
+                  openEditor("edit", { eventId: ev.id });
+                }}
+              />
+            ))}
+            {overflow > 0 && (
+              <button
+                type="button"
+                className="rounded-full px-3 py-1 text-[11px]"
+                style={{
+                  flex: "0 0 auto",
+                  alignSelf: "flex-start",
+                  background: "var(--dd-surface-soft)",
+                  color: "var(--dd-ink)",
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  selectDate(cell.iso);
+                  openEditor("edit", { eventId: events[3].id });
+                }}
+              >
+                +{overflow} ещё
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

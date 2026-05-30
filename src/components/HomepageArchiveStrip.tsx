@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { formatHumanDate } from "../lib/calendar";
 import { isEventPublic } from "../lib/publicApi";
 import type { CalendarProject, EventItem } from "../lib/types";
-import { EVENT_TYPE_LABEL } from "../lib/types";
 import { SmartImage } from "./SmartImage";
 import { HomepageEventModal } from "./HomepageEventModal";
 
@@ -67,13 +66,18 @@ export function HomepageArchiveStrip({ project, monthKey, digest }: Props) {
               >
                 <span>{formatHumanDate(e.date)}</span>
                 {e.time && <span>· {e.time}</span>}
-                <span className="dd-chip">
-                  {EVENT_TYPE_LABEL[e.type] ?? "Событие"}
-                </span>
               </div>
               <div className="truncate text-base font-medium leading-tight">
                 {e.title || "Событие клуба"}
               </div>
+              {e.description && (
+                <p
+                  className="line-clamp-2 text-[12px]"
+                  style={{ color: "var(--dd-ink-soft)", lineHeight: 1.4 }}
+                >
+                  {e.description}
+                </p>
+              )}
               {e.telegramPostUrl && (
                 <div
                   className="text-[11px]"

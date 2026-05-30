@@ -63,7 +63,7 @@ export function PublicCalendarGrid({
         role="grid"
         aria-label="Публичный календарь месяца"
         className={[
-          "grid grid-cols-7",
+          "grid grid-cols-7 items-start",
           compact ? "gap-1.5" : "gap-2 md:gap-3",
         ].join(" ")}
       >
@@ -92,8 +92,7 @@ export function PublicCalendarGrid({
             candidate.cardStyle === "raw-image" &&
             Boolean(candidate.imageDataUrl) &&
             isUntitled &&
-            !candidate.description?.trim() &&
-            !(candidate.relatedMaterialIds ?? []).length
+            !candidate.description?.trim()
               ? candidate
               : null;
 
@@ -144,71 +143,105 @@ export function PublicCalendarGrid({
             <div
               key={c.iso}
               role="gridcell"
-              className="flex flex-col gap-2 rounded-dd-card p-3"
+              className="relative rounded-dd-card"
               style={{
                 aspectRatio: "1 / 1",
+                overflow: "hidden",
                 background: "var(--dd-surface)",
               }}
             >
-              <div className="flex items-baseline justify-between">
-                <span
-                  className="text-[22px] font-medium leading-none"
-                  style={{
-                    color: "var(--dd-ink)",
-                    letterSpacing: "-0.02em",
-                  }}
-                >
-                  {c.day}
-                </span>
-                {c.isToday && (
-                  <span
-                    className="rounded-full px-2 py-[3px] text-[9px] uppercase tracking-[0.16em] font-medium"
-                    style={{ background: "var(--dd-ink)", color: "#ffffff" }}
-                  >
-                    сегодня
-                  </span>
-                )}
-              </div>
-              {events.length === 0 ? (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                  padding: 12,
+                  minWidth: 0,
+                  minHeight: 0,
+                  overflow: "hidden",
+                }}
+              >
                 <div
-                  className="flex flex-1 items-center justify-center text-center text-[11px] leading-tight"
-                  style={{ color: "var(--dd-muted)" }}
+                  className="flex items-baseline justify-between"
+                  style={{ flex: "0 0 auto" }}
                 >
-                  —
-                </div>
-              ) : (
-                <div className="flex flex-1 flex-col gap-2">
-                  {visible.map((ev) => (
-                    <EventCard
-                      key={ev.id}
-                      event={ev}
-                      materials={project.materials}
-                      compact={compact}
-                      publicMode
-                      showTelegramLinks={showTelegramLinks}
-                      onClick={() => {
-                        if (enableModal) setOpenEvent(ev);
-                      }}
-                      isExportMode={!enableModal}
-                    />
-                  ))}
-                  {overflow > 0 && (
-                    <button
-                      type="button"
-                      className="rounded-full px-3 py-1 text-[11px]"
-                      style={{
-                        background: "var(--dd-surface-soft)",
-                        color: "var(--dd-ink)",
-                      }}
-                      onClick={() => {
-                        if (enableModal) setOpenEvent(events[visible.length]);
-                      }}
+                  <span
+                    className="text-[22px] font-medium leading-none"
+                    style={{
+                      color: "var(--dd-ink)",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    {c.day}
+                  </span>
+                  {c.isToday && (
+                    <span
+                      className="rounded-full px-2 py-[3px] text-[9px] uppercase tracking-[0.16em] font-medium"
+                      style={{ background: "var(--dd-ink)", color: "#ffffff" }}
                     >
-                      +{overflow} ещё
-                    </button>
+                      сегодня
+                    </span>
                   )}
                 </div>
-              )}
+                {events.length === 0 ? (
+                  <div
+                    className="flex items-center justify-center text-center text-[11px] leading-tight"
+                    style={{
+                      flex: "1 1 auto",
+                      minHeight: 0,
+                      color: "var(--dd-muted)",
+                      overflow: "hidden",
+                    }}
+                  >
+                    —
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      flex: "1 1 auto",
+                      minHeight: 0,
+                      minWidth: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {visible.map((ev) => (
+                      <EventCard
+                        key={ev.id}
+                        event={ev}
+                        compact={compact}
+                        publicMode
+                        showTelegramLinks={showTelegramLinks}
+                        onClick={() => {
+                          if (enableModal) setOpenEvent(ev);
+                        }}
+                        isExportMode={!enableModal}
+                      />
+                    ))}
+                    {overflow > 0 && (
+                      <button
+                        type="button"
+                        className="rounded-full px-3 py-1 text-[11px]"
+                        style={{
+                          flex: "0 0 auto",
+                          alignSelf: "flex-start",
+                          background: "var(--dd-surface-soft)",
+                          color: "var(--dd-ink)",
+                        }}
+                        onClick={() => {
+                          if (enableModal) setOpenEvent(events[visible.length]);
+                        }}
+                      >
+                        +{overflow} ещё
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}

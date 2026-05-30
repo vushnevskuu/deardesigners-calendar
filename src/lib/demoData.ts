@@ -103,7 +103,6 @@ export const DEMO_EVENTS: EventItem[] = [
     title: "Ворман: онлайн-болталка",
     cardStyle: "minimal",
     description: "Свободный созвон сообщества. Темы рождаются на месте.",
-    relatedMaterialIds: ["m-zoom-1", "m-zoom-3"],
   },
   {
     id: ID(2),
@@ -113,7 +112,6 @@ export const DEMO_EVENTS: EventItem[] = [
     title: "UI-кружок: копирование",
     cardStyle: "photo",
     description: "Учимся видеть детали, копируя кусок интерфейса по референсу.",
-    relatedMaterialIds: ["m-rev-2", "m-ppl-4"],
   },
   {
     id: ID(3),
@@ -123,7 +121,6 @@ export const DEMO_EVENTS: EventItem[] = [
     title: "Лекция по работе с референсами",
     cardStyle: "photo",
     description: "Как искать, систематизировать и не превращаться в копию пинтереста.",
-    relatedMaterialIds: ["m-ref-1", "m-ref-2", "m-ref-3"],
   },
   {
     id: ID(4),
@@ -132,7 +129,7 @@ export const DEMO_EVENTS: EventItem[] = [
     type: "chat",
     title: "Ворман: онлайн-болталка",
     cardStyle: "minimal",
-    relatedMaterialIds: ["m-zoom-1"],
+    description: "Свободный созвон сообщества по средам.",
   },
   {
     id: ID(5),
@@ -141,8 +138,7 @@ export const DEMO_EVENTS: EventItem[] = [
     type: "practice",
     title: "Практика по работе с референсами",
     cardStyle: "photo",
-    description: "Собираем мудборд и защищаем выбор перед клубом.",
-    relatedMaterialIds: ["m-ref-4", "m-ref-5", "m-rec-3"],
+    description: "Разбираем референсы, стили театра и обложки Грамми. Собираем мудборд и защищаем выбор перед клубом.",
   },
   {
     id: ID(6),
@@ -161,7 +157,6 @@ export const DEMO_EVENTS: EventItem[] = [
     title: "Оффлайн-встреча клуба",
     cardStyle: "photo",
     description: "Встречаемся вживую: показы, разговоры, портвейн.",
-    relatedMaterialIds: ["m-show-1", "m-rev-3"],
   },
   {
     id: ID(8),
@@ -170,7 +165,7 @@ export const DEMO_EVENTS: EventItem[] = [
     type: "chat",
     title: "Ворман: онлайн-болталка",
     cardStyle: "minimal",
-    relatedMaterialIds: ["m-zoom-1"],
+    description: "Свободный созвон сообщества по средам.",
   },
   {
     id: ID(9),
@@ -180,7 +175,6 @@ export const DEMO_EVENTS: EventItem[] = [
     title: "UI-кружок: редизайн",
     cardStyle: "photo",
     description: "Берём знакомый продукт и аккуратно его переосмысляем.",
-    relatedMaterialIds: ["m-rev-2", "m-q-1"],
   },
   {
     id: ID(10),
@@ -190,7 +184,6 @@ export const DEMO_EVENTS: EventItem[] = [
     title: "Поиск IKIGAI: что вам подходит в дизайне и жизни",
     cardStyle: "text-only",
     description: "Лекция-разговор о том, как сверяться с собой и не выгорать.",
-    relatedMaterialIds: ["m-rec-1", "m-rec-2"],
   },
   {
     id: ID(11),
@@ -200,7 +193,6 @@ export const DEMO_EVENTS: EventItem[] = [
     title: "Как примерять вайбкодинг на работе",
     cardStyle: "text-only",
     description: "Когда AI-ассистенты помогают, а когда мешают думать дизайнеру.",
-    relatedMaterialIds: ["m-q-3", "m-rec-4"],
   },
   {
     id: ID(12),
@@ -210,7 +202,6 @@ export const DEMO_EVENTS: EventItem[] = [
     title: "Онлайн-дискуссия",
     cardStyle: "minimal",
     description: "Тема набирается голосованием в чате клуба.",
-    relatedMaterialIds: ["m-q-2"],
   },
   {
     id: ID(13),
@@ -220,7 +211,6 @@ export const DEMO_EVENTS: EventItem[] = [
     title: "Завтрак на веранде",
     cardStyle: "photo",
     description: "Тёплое утро, сырники, разговоры без повестки.",
-    relatedMaterialIds: ["m-rec-2"],
   },
   {
     id: ID(14),
@@ -229,7 +219,7 @@ export const DEMO_EVENTS: EventItem[] = [
     type: "chat",
     title: "Ворман: онлайн-болталка",
     cardStyle: "minimal",
-    relatedMaterialIds: ["m-zoom-1"],
+    description: "Свободный созвон сообщества по средам.",
   },
   {
     id: ID(15),
@@ -239,7 +229,6 @@ export const DEMO_EVENTS: EventItem[] = [
     title: "Портфолио-ревью: смотрим прогресс и даём ОС",
     cardStyle: "photo",
     description: "Каждый показывает, что собрано за месяц. Тёплая обратная связь.",
-    relatedMaterialIds: ["m-rev-1", "m-rev-3", "m-rev-4"],
   },
 ];
 

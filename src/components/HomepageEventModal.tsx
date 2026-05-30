@@ -1,9 +1,7 @@
 import { useEffect } from "react";
 import { formatHumanDate } from "../lib/calendar";
-import { materialsForEvent } from "../lib/materials";
 import type { CalendarProject, EventItem } from "../lib/types";
-import { EVENT_TYPE_LABEL } from "../lib/types";
-import { CloseIcon, SparkleIcon } from "./icons";
+import { CloseIcon } from "./icons";
 import { SmartImage } from "./SmartImage";
 
 type Props = {
@@ -28,7 +26,6 @@ export function HomepageEventModal({ event, project, onClose }: Props) {
 
   const isHinted = event.visibility === "members_hint";
   const showTelegram = project.publishSettings?.showTelegramLinks ?? true;
-  const linked = isHinted ? [] : materialsForEvent(event, project.materials);
 
   return (
     <div
@@ -80,7 +77,6 @@ export function HomepageEventModal({ event, project, onClose }: Props) {
           >
             <span>{formatHumanDate(event.date)}</span>
             {event.time && <span>· {event.time}</span>}
-            <span className="dd-chip">{EVENT_TYPE_LABEL[event.type] ?? "Событие"}</span>
           </div>
           <h2
             className="mt-3 font-display text-display-md"
@@ -107,32 +103,6 @@ export function HomepageEventModal({ event, project, onClose }: Props) {
               Подробности доступны участникам клуба. Откройте пост в Telegram,
               чтобы прочитать обсуждение и присоединиться.
             </p>
-          )}
-
-          {linked.length > 0 && (
-            <div className="mt-5">
-              <div
-                className="text-xs uppercase tracking-wide"
-                style={{ color: "var(--dd-ink-soft)" }}
-              >
-                Фишки и материалы
-              </div>
-              <ul className="mt-2 flex flex-wrap gap-2">
-                {linked.map((m) => (
-                  <li
-                    key={m.id}
-                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm"
-                    style={{
-                      background: "var(--dd-surface-soft)",
-                      color: "var(--dd-ink)",
-                    }}
-                  >
-                    <SparkleIcon />
-                    <span>{m.title}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
           )}
 
           {showTelegram && event.telegramPostUrl && (

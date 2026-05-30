@@ -1,55 +1,19 @@
-import type { EventItem, MaterialItem } from "../lib/types";
-import { materialsForEvent } from "../lib/materials";
-import { SparkleIcon } from "./icons";
+import type { EventItem } from "../lib/types";
 import { SmartImage } from "./SmartImage";
 
 type Props = {
   event: EventItem;
-  materials: MaterialItem[];
   selected?: boolean;
   compact?: boolean;
   onClick?: (e: React.MouseEvent) => void;
-  onDragOverMaterial?: (e: React.DragEvent) => void;
-  onDropMaterial?: (e: React.DragEvent) => void;
   isExportMode?: boolean;
   // Публичный режим (homepage/embed): без редактирования, с кнопкой Telegram.
   publicMode?: boolean;
   showTelegramLinks?: boolean;
 };
 
-// Чёрно-белая editorial-палитра: один тип = одно настроение,
-// без кричащих цветов. Светлые типы — белые карточки с чёрной обводкой,
-// тёмные — чёрные карточки с белым текстом, нейтральные — серые.
-type Variant = "dark" | "soft" | "ivory" | "outline";
-
-const VARIANT_FOR_TYPE: Record<EventItem["type"], Variant> = {
-  talk: "dark",
-  practice: "soft",
-  "ui-circle": "dark",
-  chat: "ivory",
-  coworking: "outline",
-  discussion: "dark",
-  offline: "dark",
-  breakfast: "ivory",
-  portfolio: "soft",
-  materials: "outline",
-  other: "outline",
-};
-
-const VARIANT_BG: Record<Variant, string> = {
-  dark: "#000000",
-  soft: "#eeeeee",
-  ivory: "#f0ebe3",
-  outline: "transparent",
-};
-const VARIANT_INK: Record<Variant, string> = {
-  dark: "#ffffff",
-  soft: "#000000",
-  ivory: "#000000",
-  outline: "#000000",
-};
-
-// Перцептуальная яркость 0..1 для решения «светлый фон или тёмный».
+// Перцептуальная яркость 0..1 для решения «светлый фон или тёмный»
+// у пользовательской картинки (нужно для контраста overlay-текста).
 function bgLuminance(hex: string | undefined): number {
   if (!hex) return 0;
   const m = /^#?([a-fA-F0-9]{6})$/.exec(hex.trim());
@@ -61,45 +25,35 @@ function bgLuminance(hex: string | undefined): number {
   return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
+// Карточка события. Один цельный фрейм без вложенных подкарточек, чипов
+// и цветных тем по типу события. Только: дата ячейки (рисуется в ячейке
+// календаря), title, опционально time, description и картинка.
 export function EventCard({
   event,
-  materials,
   selected,
   compact,
   onClick,
-  onDragOverMaterial,
-  onDropMaterial,
   isExportMode,
   publicMode,
   showTelegramLinks,
 }: Props) {
-  const linked = materialsForEvent(event, materials);
   const styleRaw = event.cardStyle ?? "photo";
-  // Если у события нет ни заголовка, ни описания, ни материалов —
-  // показываем как чистую картинку (без оверлея).
   const isUntitled =
     !event.title?.trim() ||
     event.title.trim().toLowerCase() === "без названия";
   const hasDescription = Boolean(event.description?.trim());
+  // Чистая картинка-постер: используется только если у события вообще нет
+  // текстового контента. Иначе — image-card с overlay или text-card.
   const style =
     styleRaw === "photo" &&
     event.imageDataUrl &&
     isUntitled &&
-    !hasDescription &&
-    linked.length === 0
+    !hasDescription
       ? ("raw-image" as const)
       : styleRaw;
   const hasImage = Boolean(event.imageDataUrl) && style !== "text-only";
-  const variant = VARIANT_FOR_TYPE[event.type] ?? "outline";
-  const baseBg = VARIANT_BG[variant];
-  const ink = VARIANT_INK[variant];
 
-  // Текст карточки: заголовок, либо (если его нет) — описание.
-  const primaryText = !isUntitled
-    ? event.title
-    : event.description?.trim() ?? "";
-
-  // Чистая картинка: показываем только image, без оверлея, текстов и скруглений
+  // ── RAW IMAGE ───────────────────────────────────────────────────────────
   if (style === "raw-image") {
     const hasRawImage = Boolean(event.imageDataUrl);
     const rawBgMode = event.imageBackgroundMode ?? "blurred-fill";
@@ -114,22 +68,21 @@ export function EventCard({
             onClick(e as unknown as React.MouseEvent);
           }
         }}
-        onDragOver={onDragOverMaterial}
-        onDrop={onDropMaterial}
         data-has-image={hasRawImage ? "true" : "false"}
         data-image-bg-mode={hasRawImage ? rawBgMode : "none"}
         className={[
           "relative flex w-full items-center justify-center overflow-hidden text-center transition-transform",
-          compact ? "min-h-[58px]" : "min-h-[88px]",
           isExportMode
             ? "cursor-default"
             : "cursor-pointer hover:-translate-y-[1px]",
         ].join(" ")}
         style={{
+          flex: "1 1 auto",
+          minHeight: 0,
           padding: 0,
           borderRadius: 0,
           backgroundColor: hasRawImage
-            ? event.imageDominantColor ?? "#111111"
+            ? event.imageDominantColor ?? "var(--dd-surface-soft)"
             : "var(--dd-surface-soft)",
           color: "var(--dd-muted)",
           fontSize: 11,
@@ -177,7 +130,31 @@ export function EventCard({
     );
   }
 
-  // Решаем, нужны ли затемняющие/тёмные оверлеи и какого цвета должен быть текст.
+  // ── TEXT CARD ───────────────────────────────────────────────────────────
+  // Без картинки или явный text-only/minimal/icon. Чистый белый фрейм,
+  // никаких цветных подложек по типу события.
+  const isTextCard =
+    !hasImage ||
+    styleRaw === "text-only" ||
+    styleRaw === "minimal" ||
+    styleRaw === "icon";
+  if (isTextCard) {
+    return (
+      <TextEventCard
+        event={event}
+        compact={compact}
+        selected={selected}
+        isExportMode={isExportMode}
+        publicMode={publicMode}
+        showTelegramLinks={showTelegramLinks}
+        onClick={onClick}
+      />
+    );
+  }
+
+  // ── IMAGE CARD ──────────────────────────────────────────────────────────
+  // С картинкой: SmartImage заполняет весь фрейм, текст рисуется поверх.
+  // Никаких цветных тем по типу события — фон формирует сама картинка.
   const bgMode = event.imageBackgroundMode ?? "blurred-fill";
   const isSolidBg = hasImage && bgMode === "solid";
   const isLightImageBg =
@@ -188,43 +165,8 @@ export function EventCard({
       bgLuminance(event.imageDominantColor) > 0.7);
   const overlayGradient = hasImage && !isSolidBg && !isLightImageBg;
   const useTextShadow = hasImage && !isSolidBg && !isLightImageBg;
-  const onImageInk = hasImage
-    ? isLightImageBg
-      ? "#000000"
-      : "#ffffff"
-    : ink;
+  const onImageInk = isLightImageBg ? "#000000" : "#ffffff";
 
-  // ── TEXT CARD ───────────────────────────────────────────────────────────
-  // Если у события нет картинки или явно выбран text-only/minimal — рендерим
-  // карточку как нормальный flex-блок, без absolute-overlay, чтобы длинный
-  // заголовок не обрезался сверху/снизу. Контент: time → title → materials.
-  const isTextCard =
-    !hasImage ||
-    styleRaw === "text-only" ||
-    styleRaw === "minimal" ||
-    styleRaw === "icon";
-  if (isTextCard) {
-    return (
-      <TextEventCard
-        event={event}
-        primaryText={primaryText}
-        linked={linked}
-        variant={variant}
-        baseBg={baseBg}
-        ink={ink}
-        compact={compact}
-        selected={selected}
-        isExportMode={isExportMode}
-        publicMode={publicMode}
-        showTelegramLinks={showTelegramLinks}
-        onClick={onClick}
-        onDragOverMaterial={onDragOverMaterial}
-        onDropMaterial={onDropMaterial}
-      />
-    );
-  }
-
-  // ── IMAGE CARD ──────────────────────────────────────────────────────────
   return (
     <div
       role="button"
@@ -236,37 +178,32 @@ export function EventCard({
           onClick(e as unknown as React.MouseEvent);
         }
       }}
-      onDragOver={onDragOverMaterial}
-      onDrop={onDropMaterial}
-      data-has-image={hasImage ? "true" : "false"}
-      data-image-bg-mode={hasImage ? bgMode : "none"}
+      data-has-image="true"
+      data-image-bg-mode={bgMode}
       className={[
         "relative w-full overflow-hidden text-left transition-transform",
-        compact ? "min-h-[58px]" : "min-h-[88px]",
         isExportMode ? "cursor-default" : "cursor-pointer hover:-translate-y-[1px]",
       ].join(" ")}
       style={{
+        flex: "1 1 auto",
+        minHeight: 0,
         borderRadius: 18,
         boxShadow: selected ? "0 6px 22px rgba(0,0,0,0.18)" : "none",
-        background: hasImage
-          ? event.imageDominantColor ?? "#111111"
-          : baseBg,
+        background: event.imageDominantColor ?? "var(--dd-surface)",
         color: onImageInk,
       }}
-      aria-label={primaryText ? `Событие: ${primaryText}` : "Событие"}
+      aria-label={event.title ? `Событие: ${event.title}` : "Событие"}
     >
-      {hasImage && (
-        <div className="absolute inset-0" style={{ zIndex: 0 }}>
-          <SmartImage
-            src={event.imageDataUrl as string}
-            alt={event.title}
-            fit={event.imageFit ?? "smart"}
-            backgroundMode={event.imageBackgroundMode}
-            dominantColor={event.imageDominantColor}
-            objectPosition={event.imagePosition ?? "center center"}
-          />
-        </div>
-      )}
+      <div className="absolute inset-0" style={{ zIndex: 0 }}>
+        <SmartImage
+          src={event.imageDataUrl as string}
+          alt={event.title}
+          fit={event.imageFit ?? "smart"}
+          backgroundMode={event.imageBackgroundMode}
+          dominantColor={event.imageDominantColor}
+          objectPosition={event.imagePosition ?? "center center"}
+        />
+      </div>
       {overlayGradient && (
         <div
           aria-hidden
@@ -278,8 +215,7 @@ export function EventCard({
           }}
         />
       )}
-      {/* Контент-оверлей: рисуется поверх картинки и НЕ занимает layout-высоту */}
-      {(event.time || primaryText || (!compact && linked.length > 0)) && (
+      {(event.title || event.description) && (
         <div
           className="absolute flex flex-col gap-1.5"
           style={{
@@ -287,19 +223,10 @@ export function EventCard({
             left: compact ? 10 : 12,
             right: compact ? 10 : 12,
             bottom: compact ? 10 : 12,
-            top: event.time ? (compact ? 10 : 12) : "auto",
+            top: "auto",
           }}
         >
-          {event.time && (
-            <div
-              className="flex items-center justify-end text-[10px] uppercase tracking-[0.14em]"
-              style={{ opacity: 0.78 }}
-            >
-              <span>{event.time}</span>
-            </div>
-          )}
-
-          {primaryText && (
+          {event.title && (
             <div
               className={[
                 "font-medium leading-tight",
@@ -313,69 +240,33 @@ export function EventCard({
                   : undefined,
               }}
             >
-              {primaryText}
+              {event.title}
             </div>
           )}
-
-          {!compact && linked.length > 0 && (
-            <div className="flex flex-wrap gap-1 pt-1">
-              {linked.slice(0, 3).map((m) => (
-                <span
-                  key={m.id}
-                  className="inline-flex max-w-[160px] items-center gap-1 truncate rounded-full px-2 py-[3px] text-[10px]"
-                  style={{
-                    background: hasImage
-                      ? isLightImageBg
-                        ? "rgba(0,0,0,0.08)"
-                        : "rgba(255,255,255,0.92)"
-                      : variant === "dark"
-                        ? "rgba(255,255,255,0.16)"
-                        : "rgba(0,0,0,0.08)",
-                    color:
-                      hasImage && !isLightImageBg
-                        ? "#000000"
-                        : hasImage && isLightImageBg
-                          ? "#000000"
-                          : variant === "dark"
-                            ? "#ffffff"
-                            : "#000000",
-                  }}
-                  title={`${m.section} · ${m.title}`}
-                >
-                  <SparkleIcon />
-                  <span className="truncate">{m.title}</span>
-                </span>
-              ))}
-              {linked.length > 3 && (
-                <span
-                  className="inline-flex items-center rounded-full px-2 py-[3px] text-[10px]"
-                  style={{
-                    background: hasImage
-                      ? isLightImageBg
-                        ? "rgba(0,0,0,0.08)"
-                        : "rgba(255,255,255,0.9)"
-                      : variant === "dark"
-                        ? "rgba(255,255,255,0.16)"
-                        : "rgba(0,0,0,0.06)",
-                    color:
-                      hasImage || variant !== "dark" ? "#000000" : "#ffffff",
-                  }}
-                >
-                  +{linked.length - 3}
-                </span>
-              )}
+          {!compact && event.description && (
+            <div
+              className="text-[12px] leading-snug"
+              style={{
+                opacity: 0.85,
+                overflow: "hidden",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+                textOverflow: "ellipsis",
+                textShadow: useTextShadow
+                  ? "0 1px 6px rgba(0,0,0,0.45)"
+                  : undefined,
+              }}
+            >
+              {event.description}
             </div>
           )}
         </div>
       )}
-      {/* Когда нет ни картинки, ни текста — просто пустая карточка с baseBg */}
-      {!hasImage && !primaryText && !event.time && linked.length === 0 && (
-        <span style={{ visibility: "hidden" }}>—</span>
-      )}
       {showTelegramLinks && event.telegramPostUrl && (
         <TelegramPin
           url={event.telegramPostUrl}
-          isLight={hasImage ? isLightImageBg : variant !== "dark"}
+          isLight={isLightImageBg}
           publicMode={publicMode}
         />
       )}
@@ -384,52 +275,37 @@ export function EventCard({
 }
 
 // ── TEXT CARD ──────────────────────────────────────────────────────────
-// Текстовая карточка без изображения: flex-column, normal flow, line-clamp.
-// Никаких absolute-слоёв — длинный заголовок переносится по строкам и режется
-// многоточием, а не обрезается сверху из-за overflow родителя.
+// Текстовая карточка без изображения: один белый фрейм, без чипов, без
+// плашек, без цветных подкарточек. Структура: time → title → description.
 function TextEventCard({
   event,
-  primaryText,
-  linked,
-  variant,
-  baseBg,
-  ink,
   compact,
   selected,
   isExportMode,
   publicMode,
   showTelegramLinks,
   onClick,
-  onDragOverMaterial,
-  onDropMaterial,
 }: {
   event: EventItem;
-  primaryText: string;
-  linked: MaterialItem[];
-  variant: Variant;
-  baseBg: string;
-  ink: string;
   compact?: boolean;
   selected?: boolean;
   isExportMode?: boolean;
   publicMode?: boolean;
   showTelegramLinks?: boolean;
   onClick?: (e: React.MouseEvent) => void;
-  onDragOverMaterial?: (e: React.DragEvent) => void;
-  onDropMaterial?: (e: React.DragEvent) => void;
 }) {
-  const lineClamp = compact ? 3 : 4;
-  // Размеры подобраны так, чтобы 3 строки уверенно влезали в compact-карточку
-  // (~58–88px) и не обрезались по верху.
-  const titleSize = compact ? 13 : 15;
-  const titleLineHeight = 1.18;
-  // Fallback на случай, если html-to-image не сохранил -webkit-line-clamp.
-  // Ровно столько строк × line-height + страховка 0.05em.
-  const titleMaxHeight = `calc(${titleLineHeight}em * ${lineClamp} + 0.06em)`;
+  const titleClamp = compact ? 3 : 4;
+  const descClamp = compact ? 2 : 3;
+  const titleSize = compact ? 12.5 : 13.5;
+  const descSize = compact ? 11 : 12;
+  const titleLineHeight = 1.2;
+  const descLineHeight = 1.3;
+  const titleMaxHeight = `calc(${titleLineHeight}em * ${titleClamp} + 0.06em)`;
+  const descMaxHeight = `calc(${descLineHeight}em * ${descClamp} + 0.06em)`;
 
-  const chipBg =
-    variant === "dark" ? "rgba(255,255,255,0.16)" : "rgba(0,0,0,0.08)";
-  const chipColor = variant === "dark" ? "#ffffff" : "#000000";
+  const title = event.title?.trim() ?? "";
+  const description = event.description?.trim() ?? "";
+  const showDescription = Boolean(description) && (!compact || !title);
 
   return (
     <div
@@ -442,12 +318,9 @@ function TextEventCard({
           onClick(e as unknown as React.MouseEvent);
         }
       }}
-      onDragOver={onDragOverMaterial}
-      onDrop={onDropMaterial}
       data-card-kind="text"
       className={[
         "relative w-full text-left transition-transform",
-        compact ? "min-h-[58px]" : "min-h-[88px]",
         isExportMode
           ? "cursor-default"
           : "cursor-pointer hover:-translate-y-[1px]",
@@ -456,137 +329,73 @@ function TextEventCard({
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        justifyContent: "space-between",
-        gap: compact ? 6 : 8,
-        height: "100%",
-        padding: compact ? "10px 12px 10px" : "14px 16px 14px",
+        flex: "1 1 auto",
+        gap: compact ? 4 : 5,
+        minHeight: 0,
+        minWidth: 0,
+        padding: compact ? "10px 12px" : "11px 13px",
         overflow: "hidden",
-        background: baseBg,
-        color: ink,
+        background: "var(--dd-surface)",
+        color: "var(--dd-ink)",
         borderRadius: 18,
         boxShadow: selected ? "0 6px 22px rgba(0,0,0,0.18)" : "none",
       }}
-      aria-label={primaryText ? `Событие: ${primaryText}` : "Событие"}
+      aria-label={title || description ? `Событие: ${title || description}` : "Событие"}
     >
-      {event.time && (
+      {title && (
         <div
           style={{
             flex: "0 0 auto",
-            display: "flex",
-            justifyContent: "flex-end",
-            fontSize: 10,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            opacity: 0.78,
-            lineHeight: 1,
+            minWidth: 0,
+            width: "100%",
+            margin: 0,
+            fontSize: titleSize,
+            lineHeight: titleLineHeight,
+            letterSpacing: "-0.01em",
+            fontWeight: 500,
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitLineClamp: titleClamp,
+            WebkitBoxOrient: "vertical",
+            textOverflow: "ellipsis",
+            overflowWrap: "break-word",
+            wordBreak: "normal",
+            hyphens: "auto",
+            maxHeight: titleMaxHeight,
           }}
         >
-          <span>{event.time}</span>
+          {title}
         </div>
       )}
 
-      {primaryText && (
-        <div
+      {showDescription && (
+        <p
           style={{
-            // textBody: flex-1 + min-height: 0 — ключ к корректному line-clamp
-            // внутри flex-контейнера (без min-height: 0 текст вылезает).
             flex: "1 1 auto",
             minWidth: 0,
-            minHeight: 0,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
+            margin: 0,
+            fontSize: descSize,
+            lineHeight: descLineHeight,
+            color: "var(--dd-muted)",
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitLineClamp: descClamp,
+            WebkitBoxOrient: "vertical",
+            textOverflow: "ellipsis",
+            overflowWrap: "break-word",
+            wordBreak: "normal",
+            hyphens: "auto",
+            maxHeight: descMaxHeight,
           }}
         >
-          <div
-            style={{
-              width: "100%",
-              minWidth: 0,
-              margin: 0,
-              fontSize: titleSize,
-              lineHeight: titleLineHeight,
-              letterSpacing: "-0.01em",
-              fontWeight: 500,
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: lineClamp,
-              WebkitBoxOrient: "vertical",
-              textOverflow: "ellipsis",
-              overflowWrap: "anywhere",
-              wordBreak: "normal",
-              maxHeight: titleMaxHeight,
-            }}
-          >
-            {primaryText}
-          </div>
-        </div>
-      )}
-
-      {!compact && linked.length > 0 && (
-        <div
-          style={{
-            flex: "0 0 auto",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 4,
-            paddingTop: 2,
-          }}
-        >
-          {linked.slice(0, 3).map((m) => (
-            <span
-              key={m.id}
-              title={`${m.section} · ${m.title}`}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                maxWidth: 160,
-                padding: "3px 8px",
-                borderRadius: 999,
-                fontSize: 10,
-                lineHeight: 1.2,
-                background: chipBg,
-                color: chipColor,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              <SparkleIcon />
-              <span
-                style={{
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {m.title}
-              </span>
-            </span>
-          ))}
-          {linked.length > 3 && (
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                padding: "3px 8px",
-                borderRadius: 999,
-                fontSize: 10,
-                lineHeight: 1.2,
-                background: chipBg,
-                color: chipColor,
-              }}
-            >
-              +{linked.length - 3}
-            </span>
-          )}
-        </div>
+          {description}
+        </p>
       )}
 
       {showTelegramLinks && event.telegramPostUrl && (
         <TelegramPin
           url={event.telegramPostUrl}
-          isLight={variant !== "dark"}
+          isLight
           publicMode={publicMode}
         />
       )}

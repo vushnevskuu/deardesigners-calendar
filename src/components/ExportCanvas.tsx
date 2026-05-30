@@ -6,9 +6,7 @@ import {
   monthTitleRu,
   WEEKDAYS_RU_SHORT,
 } from "../lib/calendar";
-import { materialsForEvent } from "../lib/materials";
 import {
-  EVENT_TYPE_LABEL,
   type CalendarProject,
   type ExportSettings,
   type EventItem,
@@ -19,36 +17,6 @@ import { SmartImage } from "./SmartImage";
 type Props = {
   project: CalendarProject;
   settings: ExportSettings;
-};
-
-// editorial ч/б палитра в духе deardesigners.club
-type Variant = "dark" | "soft" | "ivory" | "outline";
-
-const VARIANT_FOR_TYPE: Record<EventItem["type"], Variant> = {
-  talk: "dark",
-  practice: "soft",
-  "ui-circle": "dark",
-  chat: "ivory",
-  coworking: "outline",
-  discussion: "dark",
-  offline: "dark",
-  breakfast: "ivory",
-  portfolio: "soft",
-  materials: "outline",
-  other: "outline",
-};
-
-const VARIANT_BG: Record<Variant, string> = {
-  dark: "#000000",
-  soft: "#eeeeee",
-  ivory: "#f0ebe3",
-  outline: "transparent",
-};
-const VARIANT_INK: Record<Variant, string> = {
-  dark: "#ffffff",
-  soft: "#000000",
-  ivory: "#000000",
-  outline: "#000000",
 };
 
 const FONT_STACK =
@@ -156,10 +124,11 @@ export const ExportCanvas = forwardRef<HTMLDivElement, Props>(function ExportCan
                 justifyContent: "center",
                 fontFamily: FONT_STACK,
                 fontWeight: 500,
-                fontSize: 18,
+                fontSize: 14,
+                letterSpacing: "0.04em",
               }}
             >
-              D
+              ДД
             </div>
             <div>
               <div
@@ -217,7 +186,7 @@ export const ExportCanvas = forwardRef<HTMLDivElement, Props>(function ExportCan
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
+          gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
           gap: compact ? 6 : 10,
           fontSize: 11,
           textTransform: "uppercase",
@@ -235,8 +204,9 @@ export const ExportCanvas = forwardRef<HTMLDivElement, Props>(function ExportCan
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
+          gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
           gap: compact ? 6 : 10,
+          alignItems: "start",
         }}
       >
         {cells.map((cell) => {
@@ -263,8 +233,7 @@ export const ExportCanvas = forwardRef<HTMLDivElement, Props>(function ExportCan
           const candidateNoText =
             candidate &&
             candidateUntitled &&
-            !candidate.description?.trim() &&
-            !(candidate.relatedMaterialIds ?? []).length;
+            !candidate.description?.trim();
           const fullRaw =
             candidate &&
             candidate.cardStyle === "raw-image" &&
@@ -296,7 +265,7 @@ export const ExportCanvas = forwardRef<HTMLDivElement, Props>(function ExportCan
                   borderRadius: 22,
                   overflow: "hidden",
                   aspectRatio: "1 / 1",
-                  backgroundColor: fullRaw.imageDominantColor ?? "#000000",
+                  backgroundColor: fullRaw.imageDominantColor ?? "#ffffff",
                 }}
               >
                 <div
@@ -354,53 +323,76 @@ export const ExportCanvas = forwardRef<HTMLDivElement, Props>(function ExportCan
             <div
               key={cell.iso}
               style={{
+                position: "relative",
                 borderRadius: 22,
                 background: "#ffffff",
-                padding: compact ? 10 : 12,
-                display: "flex",
-                flexDirection: "column",
-                gap: 6,
                 aspectRatio: "1 / 1",
                 overflow: "hidden",
               }}
             >
               <div
                 style={{
-                  fontFamily: FONT_STACK,
-                  fontWeight: 500,
-                  fontSize: compact ? 18 : 22,
-                  lineHeight: 1,
-                  letterSpacing: "-0.02em",
-                  color: "#000000",
+                  position: "absolute",
+                  inset: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                  padding: compact ? 10 : 12,
+                  minWidth: 0,
+                  minHeight: 0,
+                  overflow: "hidden",
                 }}
               >
-                {cell.day}
-              </div>
-
-              {visible.map((ev) => (
-                <ExportEventCard
-                  key={ev.id}
-                  event={ev}
-                  materials={materialsForEvent(ev, project.materials)}
-                  showImage={settings.showEventImages}
-                  showMaterials={settings.showMaterials}
-                  compact={compact}
-                />
-              ))}
-              {overflow > 0 && (
                 <div
                   style={{
-                    fontSize: 10,
+                    flex: "0 0 auto",
+                    fontFamily: FONT_STACK,
+                    fontWeight: 500,
+                    fontSize: compact ? 18 : 22,
+                    lineHeight: 1,
+                    letterSpacing: "-0.02em",
                     color: "#000000",
-                    background: "rgba(0,0,0,0.08)",
-                    borderRadius: 999,
-                    padding: "2px 8px",
-                    width: "fit-content",
                   }}
                 >
-                  +{overflow} ещё
+                  {cell.day}
                 </div>
-              )}
+
+                <div
+                  style={{
+                    flex: "1 1 auto",
+                    minHeight: 0,
+                    minWidth: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 6,
+                    overflow: "hidden",
+                  }}
+                >
+                  {visible.map((ev) => (
+                    <ExportEventCard
+                      key={ev.id}
+                      event={ev}
+                      showImage={settings.showEventImages}
+                      compact={compact}
+                    />
+                  ))}
+                  {overflow > 0 && (
+                    <div
+                      style={{
+                        flex: "0 0 auto",
+                        alignSelf: "flex-start",
+                        fontSize: 10,
+                        color: "#000000",
+                        background: "rgba(0,0,0,0.08)",
+                        borderRadius: 999,
+                        padding: "2px 8px",
+                      }}
+                    >
+                      +{overflow} ещё
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           );
         })}
@@ -444,65 +436,60 @@ export const ExportCanvas = forwardRef<HTMLDivElement, Props>(function ExportCan
               gap: 10,
             }}
           >
-            {past.slice(0, isStories ? 4 : 8).map((ev) => {
-              const linked = materialsForEvent(ev, project.materials);
-              return (
+            {past.slice(0, isStories ? 4 : 8).map((ev) => (
+              <div
+                key={ev.id}
+                style={{
+                  borderRadius: 22,
+                  background: "#ffffff",
+                  padding: 14,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                }}
+              >
                 <div
-                  key={ev.id}
                   style={{
-                    borderRadius: 22,
-                    background: "#ffffff",
-                    padding: 14,
                     display: "flex",
-                    flexDirection: "column",
-                    gap: 6,
+                    justifyContent: "space-between",
+                    fontSize: 10,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.14em",
+                    color: "#6e6e6e",
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: 10,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.14em",
-                      color: "#6e6e6e",
-                    }}
-                  >
-                    <span>{formatHumanDate(ev.date)}</span>
-                    <span>{EVENT_TYPE_LABEL[ev.type]}</span>
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: FONT_STACK,
-                      fontWeight: 500,
-                      fontSize: 15,
-                      lineHeight: 1.18,
-                      letterSpacing: "-0.01em",
-                    }}
-                  >
-                    {ev.title}
-                  </div>
-                  {settings.showMaterials && linked.length > 0 && (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                      {linked.slice(0, 4).map((m) => (
-                        <span
-                          key={m.id}
-                          style={{
-                            fontSize: 10,
-                            padding: "3px 9px",
-                            borderRadius: 999,
-                            background: "#eeeeee",
-                            color: "#000000",
-                          }}
-                        >
-                          ✦ {m.title}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <span>{formatHumanDate(ev.date)}</span>
                 </div>
-              );
-            })}
+                <div
+                  style={{
+                    fontFamily: FONT_STACK,
+                    fontWeight: 500,
+                    fontSize: 15,
+                    lineHeight: 1.18,
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  {ev.title}
+                </div>
+                {ev.description && (
+                  <div
+                    style={{
+                      fontSize: 12,
+                      lineHeight: 1.35,
+                      color: "#6e6e6e",
+                      overflow: "hidden",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      textOverflow: "ellipsis",
+                      maxHeight: "calc(1.35em * 2 + 0.06em)",
+                    }}
+                  >
+                    {ev.description}
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </section>
       )}
@@ -528,19 +515,11 @@ export const ExportCanvas = forwardRef<HTMLDivElement, Props>(function ExportCan
 
 type ExportEventCardProps = {
   event: EventItem;
-  materials: ReturnType<typeof materialsForEvent>;
   showImage: boolean;
-  showMaterials: boolean;
   compact: boolean;
 };
 
-function ExportEventCard({
-  event,
-  materials,
-  showImage,
-  showMaterials,
-  compact,
-}: ExportEventCardProps) {
+function ExportEventCard({ event, showImage, compact }: ExportEventCardProps) {
   const styleRaw = event.cardStyle ?? "photo";
   const isUntitled =
     !event.title?.trim() ||
@@ -551,20 +530,12 @@ function ExportEventCard({
     event.imageDataUrl &&
     showImage &&
     isUntitled &&
-    !hasDescription &&
-    materials.length === 0
+    !hasDescription
       ? ("raw-image" as const)
       : styleRaw;
   const hasImage = Boolean(event.imageDataUrl) && showImage && style !== "text-only";
-  const variant = VARIANT_FOR_TYPE[event.type] ?? "outline";
-  const baseBg = VARIANT_BG[variant];
-  const ink = VARIANT_INK[variant];
 
-  const primaryText = !isUntitled
-    ? event.title
-    : event.description?.trim() ?? "";
-
-  // Чистая картинка: без оверлея, текстов, скруглений
+  // Чистая картинка
   if (style === "raw-image" && event.imageDataUrl && showImage) {
     return (
       <div
@@ -573,9 +544,9 @@ function ExportEventCard({
           padding: 0,
           borderRadius: 0,
           overflow: "hidden",
-          flex: 1,
-          minHeight: compact ? 40 : 58,
-          backgroundColor: event.imageDominantColor ?? "#111111",
+          flex: "1 1 auto",
+          minHeight: 0,
+          backgroundColor: event.imageDominantColor ?? "#ffffff",
         }}
       >
         <div style={{ position: "absolute", inset: 0 }}>
@@ -602,28 +573,28 @@ function ExportEventCard({
       luminance(event.imageDominantColor) > 0.7);
   const overlayGradient = hasImage && !isSolidBg && !isLightImageBg;
   const useTextShadow = hasImage && !isSolidBg && !isLightImageBg;
-  const onImageInk = hasImage
-    ? isLightImageBg
-      ? "#000000"
-      : "#ffffff"
-    : ink;
+  const onImageInk = isLightImageBg ? "#000000" : "#ffffff";
 
-  // Текстовая карточка для PNG-экспорта: без absolute, flex column,
-  // line-clamp + max-height fallback (html-to-image не всегда сохраняет
-  // -webkit-line-clamp, поэтому страхуемся фиксированной max-height).
+  // Текстовая карточка для PNG-экспорта: белый фрейм без чипов и без
+  // цветных тем по типу события. Title + description через line-clamp
+  // с max-height fallback (html-to-image не всегда сохраняет WebkitLineClamp).
   const isTextCard =
     !hasImage ||
     styleRaw === "text-only" ||
     styleRaw === "minimal" ||
     styleRaw === "icon";
   if (isTextCard) {
-    const lineClamp = compact ? 3 : 4;
-    const titleSize = compact ? 11.5 : 13;
-    const titleLineHeight = 1.18;
-    const titleMaxHeight = `calc(${titleLineHeight}em * ${lineClamp} + 0.06em)`;
-    const chipBg =
-      variant === "dark" ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.06)";
-    const chipFg = variant === "dark" ? "#ffffff" : "#000000";
+    const title = event.title?.trim() ?? "";
+    const description = event.description?.trim() ?? "";
+    const titleClamp = compact ? 3 : 4;
+    const descClamp = compact ? 2 : 3;
+    const titleSize = compact ? 11 : 12;
+    const descSize = compact ? 10 : 11;
+    const titleLineHeight = 1.2;
+    const descLineHeight = 1.3;
+    const titleMaxHeight = `calc(${titleLineHeight}em * ${titleClamp} + 0.06em)`;
+    const descMaxHeight = `calc(${descLineHeight}em * ${descClamp} + 0.06em)`;
+    const showDescription = Boolean(description) && (!compact || !title);
     return (
       <div
         data-card-kind="text"
@@ -632,158 +603,104 @@ function ExportEventCard({
           borderRadius: 14,
           overflow: "hidden",
           boxSizing: "border-box",
-          padding: compact ? "9px 10px" : "12px 13px",
-          flex: 1,
-          minHeight: compact ? 40 : 58,
+          padding: compact ? "8px 10px" : "10px 12px",
+          flex: "1 1 auto",
+          minHeight: 0,
+          minWidth: 0,
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between",
-          gap: compact ? 5 : 7,
-          background: baseBg,
-          color: ink,
+          gap: compact ? 3 : 5,
+          background: "#ffffff",
+          color: "#000000",
         }}
       >
-        {event.time && (
+        {title && (
           <div
             style={{
               flex: "0 0 auto",
-              display: "flex",
-              justifyContent: "flex-end",
-              fontSize: 9,
-              textTransform: "uppercase",
-              letterSpacing: "0.14em",
-              opacity: 0.8,
-              lineHeight: 1,
+              minWidth: 0,
+              width: "100%",
+              margin: 0,
+              fontFamily: FONT_STACK,
+              fontWeight: 500,
+              fontSize: titleSize,
+              lineHeight: titleLineHeight,
+              letterSpacing: "-0.01em",
+              color: "#000000",
+              overflow: "hidden",
+              display: "-webkit-box",
+              WebkitLineClamp: titleClamp,
+              WebkitBoxOrient: "vertical",
+              textOverflow: "ellipsis",
+              overflowWrap: "break-word",
+              wordBreak: "normal",
+              hyphens: "auto",
+              maxHeight: titleMaxHeight,
             }}
           >
-            <span>{event.time}</span>
+            {title}
           </div>
         )}
 
-        {primaryText && (
-          <div
+        {showDescription && (
+          <p
             style={{
               flex: "1 1 auto",
               minWidth: 0,
-              minHeight: 0,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
+              margin: 0,
+              fontFamily: FONT_STACK,
+              fontSize: descSize,
+              lineHeight: descLineHeight,
+              color: "#6e6e6e",
+              overflow: "hidden",
+              display: "-webkit-box",
+              WebkitLineClamp: descClamp,
+              WebkitBoxOrient: "vertical",
+              textOverflow: "ellipsis",
+              overflowWrap: "break-word",
+              wordBreak: "normal",
+              hyphens: "auto",
+              maxHeight: descMaxHeight,
             }}
           >
-            <div
-              style={{
-                width: "100%",
-                minWidth: 0,
-                margin: 0,
-                fontFamily: FONT_STACK,
-                fontWeight: 500,
-                fontSize: titleSize,
-                lineHeight: titleLineHeight,
-                letterSpacing: "-0.01em",
-                overflow: "hidden",
-                display: "-webkit-box",
-                WebkitLineClamp: lineClamp,
-                WebkitBoxOrient: "vertical",
-                textOverflow: "ellipsis",
-                overflowWrap: "anywhere",
-                wordBreak: "normal",
-                maxHeight: titleMaxHeight,
-              }}
-            >
-              {primaryText}
-            </div>
-          </div>
-        )}
-
-        {!compact && showMaterials && materials.length > 0 && (
-          <div
-            style={{
-              flex: "0 0 auto",
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 3,
-              marginTop: 2,
-            }}
-          >
-            {materials.slice(0, 2).map((m) => (
-              <span
-                key={m.id}
-                style={{
-                  fontSize: 9,
-                  padding: "2px 7px",
-                  borderRadius: 999,
-                  background: chipBg,
-                  color: chipFg,
-                  maxWidth: 140,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  lineHeight: 1.2,
-                }}
-              >
-                {m.title}
-              </span>
-            ))}
-            {materials.length > 2 && (
-              <span
-                style={{
-                  fontSize: 9,
-                  padding: "2px 7px",
-                  borderRadius: 999,
-                  background: chipBg,
-                  color: chipFg,
-                  lineHeight: 1.2,
-                }}
-              >
-                +{materials.length - 2}
-              </span>
-            )}
-          </div>
+            {description}
+          </p>
         )}
       </div>
     );
   }
 
-  const containerStyle: React.CSSProperties = hasImage
-    ? {
-        backgroundColor: event.imageDominantColor ?? "#111111",
-        color: onImageInk,
-      }
-    : {
-        background: baseBg,
-        color: ink,
-      };
-
+  // Image-card: текст рисуется поверх картинки. Никаких цветных подложек
+  // от типа события — фон формирует сама картинка.
   return (
     <div
-      data-has-image={hasImage ? "true" : "false"}
-      data-image-bg-mode={hasImage ? bgMode : "none"}
+      data-has-image="true"
+      data-image-bg-mode={bgMode}
       style={{
         position: "relative",
         borderRadius: 14,
         overflow: "hidden",
-        padding: compact ? 7 : 9,
-        flex: 1,
-        minHeight: compact ? 40 : 58,
+        padding: compact ? 9 : 11,
+        flex: "1 1 auto",
+        minHeight: 0,
+        minWidth: 0,
         display: "flex",
         flexDirection: "column",
-        gap: 3,
-        ...containerStyle,
+        gap: 4,
+        backgroundColor: event.imageDominantColor ?? "#ffffff",
+        color: onImageInk,
       }}
     >
-      {hasImage && (
-        <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
-          <SmartImage
-            src={event.imageDataUrl as string}
-            alt={event.title}
-            fit={event.imageFit ?? "smart"}
-            backgroundMode={event.imageBackgroundMode}
-            dominantColor={event.imageDominantColor}
-            objectPosition={event.imagePosition ?? "center center"}
-          />
-        </div>
-      )}
+      <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+        <SmartImage
+          src={event.imageDataUrl as string}
+          alt={event.title}
+          fit={event.imageFit ?? "smart"}
+          backgroundMode={event.imageBackgroundMode}
+          dominantColor={event.imageDominantColor}
+          objectPosition={event.imagePosition ?? "center center"}
+        />
+      </div>
       {overlayGradient && (
         <div
           style={{
@@ -795,27 +712,12 @@ function ExportEventCard({
           }}
         />
       )}
-      {event.time && (
+      {event.title && (
         <div
           style={{
             position: "relative",
             zIndex: 2,
-            display: "flex",
-            justifyContent: "flex-end",
-            fontSize: 9,
-            textTransform: "uppercase",
-            letterSpacing: "0.14em",
-            opacity: 0.8,
-          }}
-        >
-          <span>{event.time}</span>
-        </div>
-      )}
-      {primaryText && (
-        <div
-          style={{
-            position: "relative",
-            zIndex: 2,
+            marginTop: "auto",
             fontFamily: FONT_STACK,
             fontWeight: 500,
             fontSize: compact ? 11 : 12.5,
@@ -826,68 +728,29 @@ function ExportEventCard({
               : undefined,
           }}
         >
-          {primaryText}
+          {event.title}
         </div>
       )}
-      {!compact && showMaterials && materials.length > 0 && (
+      {!compact && event.description && (
         <div
           style={{
             position: "relative",
             zIndex: 2,
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 3,
-            marginTop: 2,
+            fontSize: 10.5,
+            lineHeight: 1.3,
+            opacity: 0.9,
+            overflow: "hidden",
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            textOverflow: "ellipsis",
+            maxHeight: "calc(1.3em * 2 + 0.06em)",
+            textShadow: useTextShadow
+              ? "0 1px 6px rgba(0,0,0,0.45)"
+              : undefined,
           }}
         >
-          {materials.slice(0, 2).map((m) => {
-            const chipBg = hasImage
-              ? isLightImageBg
-                ? "rgba(0,0,0,0.08)"
-                : "rgba(255,255,255,0.9)"
-              : variant === "dark"
-                ? "rgba(255,255,255,0.18)"
-                : "rgba(0,0,0,0.06)";
-            const chipFg =
-              hasImage || variant !== "dark" ? "#000000" : "#ffffff";
-            return (
-              <span
-                key={m.id}
-                style={{
-                  fontSize: 9,
-                  padding: "2px 7px",
-                  borderRadius: 999,
-                  background: chipBg,
-                  color: chipFg,
-                  maxWidth: 140,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                ✦ {m.title}
-              </span>
-            );
-          })}
-          {materials.length > 2 && (
-            <span
-              style={{
-                fontSize: 9,
-                padding: "2px 7px",
-                borderRadius: 999,
-                background: hasImage
-                  ? isLightImageBg
-                    ? "rgba(0,0,0,0.08)"
-                    : "rgba(255,255,255,0.9)"
-                  : variant === "dark"
-                    ? "rgba(255,255,255,0.18)"
-                    : "rgba(0,0,0,0.06)",
-                color: hasImage || variant !== "dark" ? "#000000" : "#ffffff",
-              }}
-            >
-              +{materials.length - 2}
-            </span>
-          )}
+          {event.description}
         </div>
       )}
     </div>

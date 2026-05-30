@@ -34,7 +34,7 @@ export function CalendarGrid() {
 
       <div
         role="grid"
-        className="grid grid-cols-7 gap-2 md:gap-3"
+        className="grid grid-cols-7 items-start gap-2 md:gap-3"
         aria-label="Календарь на месяц"
       >
         {cells.map((c) => (
@@ -42,7 +42,6 @@ export function CalendarGrid() {
             key={c.iso}
             cell={c}
             events={eventsByDate.get(c.iso) ?? []}
-            materials={project.materials}
           />
         ))}
       </div>

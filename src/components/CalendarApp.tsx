@@ -5,7 +5,6 @@ import { Toolbar } from "./Toolbar";
 import { CalendarGrid } from "./CalendarGrid";
 import { PastEventsStrip } from "./PastEventsStrip";
 import { EventEditor } from "./EventEditor";
-import { MaterialsPanel } from "./MaterialsPanel";
 import { ExportPanel } from "./ExportPanel";
 import { ToastStack } from "./Toast";
 
@@ -78,7 +77,6 @@ export function CalendarApp() {
       </main>
 
       <EventEditor />
-      <MaterialsPanel />
       <ExportPanel />
       <ToastStack />
     </div>

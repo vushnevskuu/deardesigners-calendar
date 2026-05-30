@@ -3,7 +3,6 @@ import { useCalendarStore } from "../state/calendarStore";
 import { type EventItem } from "../lib/types";
 import { Drawer } from "./Drawer";
 import { analyzeImageDataUrl, fileToDataUrl } from "../lib/image";
-import { filterMaterials, materialsForEvent, uniqueSections } from "../lib/materials";
 import { SmartImage } from "./SmartImage";
 
 const EMPTY_EVENT: Partial<EventItem> = {
@@ -14,7 +13,6 @@ const EMPTY_EVENT: Partial<EventItem> = {
   time: "",
   link: "",
   tags: [],
-  relatedMaterialIds: [],
 };
 
 export function EventEditor() {
@@ -27,8 +25,6 @@ export function EventEditor() {
   const addEvent = useCalendarStore((s) => s.addEvent);
   const updateEvent = useCalendarStore((s) => s.updateEvent);
   const removeEvent = useCalendarStore((s) => s.removeEvent);
-  const attachMaterialToEvent = useCalendarStore((s) => s.attachMaterialToEvent);
-  const detachMaterialFromEvent = useCalendarStore((s) => s.detachMaterialFromEvent);
   const pushToast = useCalendarStore((s) => s.pushToast);
 
   const editing = useMemo(
@@ -40,7 +36,6 @@ export function EventEditor() {
   );
 
   const [draft, setDraft] = useState<Partial<EventItem>>(EMPTY_EVENT);
-  const [materialQuery, setMaterialQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -53,18 +48,14 @@ export function EventEditor() {
         date: selectedDate ?? defaultDateForMonth(project.month),
       });
     }
-    setMaterialQuery("");
   }, [open, editing, selectedDate, project.month]);
 
   const onSave = () => {
     const date = (draft.date as string) || defaultDateForMonth(project.month);
     const trimmedTitle = (draft.title ?? "").trim();
     const trimmedDescription = draft.description?.trim() ?? "";
-    const linkedCount = (draft.relatedMaterialIds ?? []).length;
     const hasContent =
-      trimmedTitle.length > 0 ||
-      trimmedDescription.length > 0 ||
-      linkedCount > 0;
+      trimmedTitle.length > 0 || trimmedDescription.length > 0;
     const computedStyle = draft.imageDataUrl
       ? hasContent
         ? "photo"
@@ -117,7 +108,6 @@ export function EventEditor() {
         publishStatus: draft.publishStatus,
         published: draft.published,
         visibility: draft.visibility,
-        relatedMaterialIds: draft.relatedMaterialIds ?? [],
       });
       pushToast("Событие создано", "success");
     }
@@ -152,52 +142,6 @@ export function EventEditor() {
       }));
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Не удалось", "error");
-    }
-  };
-
-  const linkedIds = new Set(draft.relatedMaterialIds ?? []);
-  const sections = useMemo(() => uniqueSections(project.materials), [project.materials]);
-  const filteredMaterials = useMemo(
-    () =>
-      filterMaterials(project.materials, {
-        query: materialQuery,
-        section: "all",
-        type: "all",
-      }),
-    [project.materials, materialQuery],
-  );
-
-  const linkedMaterials = useMemo(() => {
-    if (mode === "edit" && editing) {
-      return materialsForEvent(editing, project.materials);
-    }
-    const map = new Map(project.materials.map((m) => [m.id, m]));
-    return (draft.relatedMaterialIds ?? [])
-      .map((id) => map.get(id))
-      .filter((m): m is NonNullable<typeof m> => Boolean(m));
-  }, [mode, editing, project.materials, draft.relatedMaterialIds]);
-
-  const toggleMaterial = (id: string) => {
-    if (mode === "edit" && editing) {
-      if (linkedIds.has(id)) {
-        detachMaterialFromEvent(editing.id, id);
-      } else {
-        attachMaterialToEvent(editing.id, id);
-      }
-      // sync local linked list
-      setDraft((d) => {
-        const cur = new Set(d.relatedMaterialIds ?? []);
-        if (cur.has(id)) cur.delete(id);
-        else cur.add(id);
-        return { ...d, relatedMaterialIds: Array.from(cur) };
-      });
-    } else {
-      setDraft((d) => {
-        const cur = new Set(d.relatedMaterialIds ?? []);
-        if (cur.has(id)) cur.delete(id);
-        else cur.add(id);
-        return { ...d, relatedMaterialIds: Array.from(cur) };
-      });
     }
   };
 
@@ -419,89 +363,6 @@ export function EventEditor() {
               </div>
             </div>
           )}
-        </Field>
-
-        <Field label="Прикреплённые фишки">
-          <div className="flex flex-col gap-3">
-            {linkedMaterials.length === 0 ? (
-              <div className="text-[12px]" style={{ color: "var(--dd-muted)" }}>
-                Пока ничего не прикреплено. Найди фишку ниже или перетащи её на карточку.
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {linkedMaterials.map((m) => (
-                  <span key={m.id} className="dd-chip-soft">
-                    <span aria-hidden>✦</span>
-                    <span className="max-w-[220px] truncate">{m.title}</span>
-                    <button
-                      type="button"
-                      onClick={() => toggleMaterial(m.id)}
-                      className="ml-1 text-xs"
-                      aria-label={`Открепить ${m.title}`}
-                      style={{ color: "var(--dd-muted)" }}
-                    >
-                      ✕
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-            <input
-              className="dd-input"
-              placeholder="Поиск по фишкам..."
-              value={materialQuery}
-              onChange={(e) => setMaterialQuery(e.target.value)}
-            />
-            <div
-              className="dd-scroll max-h-60 overflow-y-auto rounded-2xl"
-              style={{ background: "var(--dd-surface-soft)" }}
-            >
-              {filteredMaterials.length === 0 ? (
-                <div className="px-4 py-3 text-[12px]" style={{ color: "var(--dd-muted)" }}>
-                  Ничего не нашли.
-                </div>
-              ) : (
-                <ul>
-                  {filteredMaterials.map((m) => {
-                    const checked = linkedIds.has(m.id);
-                    return (
-                      <li key={m.id}>
-                        <button
-                          type="button"
-                          onClick={() => toggleMaterial(m.id)}
-                          className="flex w-full items-start justify-between gap-3 px-4 py-2.5 text-left hover:bg-[color:var(--dd-surface-soft)]"
-                        >
-                          <div className="min-w-0">
-                            <div className="truncate text-[14px] font-medium">{m.title}</div>
-                            <div className="truncate text-[11px]" style={{ color: "var(--dd-muted)" }}>
-                              {m.section}
-                            </div>
-                          </div>
-                          <span
-                            className="mt-1 flex h-5 w-5 items-center justify-center rounded-full text-[10px]"
-                            style={{
-                              background: checked
-                                ? "var(--dd-ink)"
-                                : "rgba(0,0,0,0.08)",
-                              color: checked ? "#fff" : "var(--dd-muted)",
-                            }}
-                            aria-hidden
-                          >
-                            {checked ? "✓" : ""}
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-            {sections.length > 0 && (
-              <div className="text-[11px]" style={{ color: "var(--dd-muted)" }}>
-                Разделов в библиотеке: {sections.length}
-              </div>
-            )}
-          </div>
         </Field>
 
         <Field label="Публикация на homepage">
