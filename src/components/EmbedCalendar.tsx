@@ -3,10 +3,12 @@ import { useCalendarStore } from "../state/calendarStore";
 import { formatMonthKey, monthTitleRu, shiftMonth } from "../lib/calendar";
 import type { AppModeContext } from "../lib/appMode";
 import { applyEmbedTheme, embedRootStyle } from "../lib/embedTheme";
+import type { CalendarProject } from "../lib/types";
 import { PublicCalendarGrid } from "./PublicCalendarGrid";
 import { HomepageArchiveStrip } from "./HomepageArchiveStrip";
 import { ArrowRight } from "./icons";
 import { ToastStack } from "./Toast";
+import { useRemoteEvents } from "../hooks/useRemoteEvents";
 
 type Props = {
   context: AppModeContext;
@@ -40,6 +42,21 @@ export function EmbedCalendar({ context }: Props) {
     settings.showTelegramLinks ??
     (project.homepageSettings.showTelegramLinks &&
       project.publishSettings.showTelegramLinks);
+
+  // Замещаем события месяца данными из БД, если она подключена.
+  const remote = useRemoteEvents(monthKey);
+  const effectiveProject: CalendarProject = useMemo(() => {
+    if (remote.state === "remote") {
+      const otherMonthEvents = project.events.filter(
+        (e) => !e.date.startsWith(monthKey),
+      );
+      return {
+        ...project,
+        events: [...otherMonthEvents, ...remote.events],
+      };
+    }
+    return project;
+  }, [project, remote, monthKey]);
 
   return (
     <div
@@ -82,7 +99,7 @@ export function EmbedCalendar({ context }: Props) {
       </header>
 
       <PublicCalendarGrid
-        project={project}
+        project={effectiveProject}
         monthKey={monthKey}
         compact={compact}
         showTelegramLinks={showTelegram}
@@ -90,7 +107,7 @@ export function EmbedCalendar({ context }: Props) {
 
       {showPast && (
         <HomepageArchiveStrip
-          project={project}
+          project={effectiveProject}
           monthKey={monthKey}
           digest={false}
         />

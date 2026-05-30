@@ -6,11 +6,13 @@
   "description": "Интерактивный календарь сообщества «Дорогие дизайнеры» — MVP",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && tsc --noEmit -p tsconfig.api.json && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.api.json"
   },
   "dependencies": {
+    "@vercel/blob": "^2.4.0",
+    "@vercel/postgres": "^0.10.0",
     "date-fns": "^3.6.0",
     "html-to-image": "^1.11.13",
     "nanoid": "^5.0.7",
@@ -19,8 +21,10 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@types/node": "^25.9.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@vercel/node": "^5.8.8",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",

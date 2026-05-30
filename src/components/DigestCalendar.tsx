@@ -7,10 +7,12 @@ import {
 } from "../lib/calendar";
 import type { AppModeContext } from "../lib/appMode";
 import { applyEmbedTheme, embedRootStyle } from "../lib/embedTheme";
+import type { CalendarProject } from "../lib/types";
 import { PublicCalendarGrid } from "./PublicCalendarGrid";
 import { HomepageArchiveStrip } from "./HomepageArchiveStrip";
 import { ArrowRight } from "./icons";
 import { ToastStack } from "./Toast";
+import { useRemoteEvents } from "../hooks/useRemoteEvents";
 
 type Props = {
   context: AppModeContext;
@@ -43,6 +45,20 @@ export function DigestCalendar({ context }: Props) {
       project.publishSettings.showTelegramLinks);
   const showPast = settings.showPast ?? true;
   const compact = settings.compact ?? false;
+
+  const remote = useRemoteEvents(monthKey);
+  const effectiveProject: CalendarProject = useMemo(() => {
+    if (remote.state === "remote") {
+      const otherMonthEvents = project.events.filter(
+        (e) => !e.date.startsWith(monthKey),
+      );
+      return {
+        ...project,
+        events: [...otherMonthEvents, ...remote.events],
+      };
+    }
+    return project;
+  }, [project, remote, monthKey]);
 
   return (
     <div
@@ -93,7 +109,7 @@ export function DigestCalendar({ context }: Props) {
       </header>
 
       <PublicCalendarGrid
-        project={project}
+        project={effectiveProject}
         monthKey={monthKey}
         compact={compact}
         showTelegramLinks={showTelegram}
@@ -101,7 +117,7 @@ export function DigestCalendar({ context }: Props) {
 
       {showPast && (
         <HomepageArchiveStrip
-          project={project}
+          project={effectiveProject}
           monthKey={monthKey}
           digest
         />
