@@ -26,7 +26,11 @@ export function embedRootStyle(
   if (theme === "light") {
     style.background = "#fafaf6";
   } else if (theme === "clean") {
-    style.background = "#ffffff";
+    // Не делаем фон чисто белым: иначе белые карточки/ячейки полностью
+    // сливаются с фоном. Берём очень светлый нейтрально-серый — карточки
+    // выделяются за счёт небольшого контраста и теней dd-card, но фон
+    // визуально остаётся "чистым" (без бежа), как просят тёмные лендинги.
+    style.background = "#f4f4f1";
   }
   return style;
 }
