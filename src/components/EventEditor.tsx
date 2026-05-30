@@ -68,7 +68,6 @@ export function EventEditor() {
         date,
         time: draft.time?.trim() || undefined,
         description: trimmedDescription || undefined,
-        link: draft.link?.trim() || undefined,
         cardStyle: computedStyle,
         imageDataUrl: draft.imageDataUrl,
         imageFit: draft.imageFit ?? "smart",
@@ -79,12 +78,10 @@ export function EventEditor() {
         imageIsMostlyWhite: draft.imageIsMostlyWhite,
         imageLooksLikeScreenshot: draft.imageLooksLikeScreenshot,
         telegramPostUrl: draft.telegramPostUrl?.trim() || undefined,
-        publishStatus: draft.publishStatus ?? editing.publishStatus,
+        publishStatus: editing.publishStatus ?? "published",
         published:
-          typeof draft.published === "boolean"
-            ? draft.published
-            : (draft.publishStatus ?? editing.publishStatus) === "published",
-        visibility: draft.visibility ?? editing.visibility,
+          typeof editing.published === "boolean" ? editing.published : true,
+        visibility: editing.visibility ?? "public",
       });
       pushToast("Событие сохранено", "success");
     } else {
@@ -94,7 +91,6 @@ export function EventEditor() {
         time: draft.time?.trim() || undefined,
         type: "other",
         description: trimmedDescription || undefined,
-        link: draft.link?.trim() || undefined,
         cardStyle: computedStyle,
         imageDataUrl: draft.imageDataUrl,
         imageFit: draft.imageFit ?? "smart",
@@ -105,9 +101,9 @@ export function EventEditor() {
         imageIsMostlyWhite: draft.imageIsMostlyWhite,
         imageLooksLikeScreenshot: draft.imageLooksLikeScreenshot,
         telegramPostUrl: draft.telegramPostUrl?.trim() || undefined,
-        publishStatus: draft.publishStatus,
-        published: draft.published,
-        visibility: draft.visibility,
+        publishStatus: "published",
+        published: true,
+        visibility: "public",
       });
       pushToast("Событие создано", "success");
     }
@@ -171,15 +167,6 @@ export function EventEditor() {
             value={draft.description ?? ""}
             onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
             placeholder="Что случится. Можно тон-оф-войсом клуба."
-          />
-        </Field>
-
-        <Field label="Ссылка">
-          <input
-            className="dd-input"
-            value={draft.link ?? ""}
-            onChange={(e) => setDraft((d) => ({ ...d, link: e.target.value }))}
-            placeholder="https://"
           />
         </Field>
 
@@ -365,99 +352,20 @@ export function EventEditor() {
           )}
         </Field>
 
-        <Field label="Публикация на homepage">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-wrap gap-2">
-              <PublishOption
-                active={(draft.publishStatus ?? "published") === "draft"}
-                title="Черновик"
-                hint="Виден только в admin"
-                onClick={() =>
-                  setDraft((d) => ({
-                    ...d,
-                    publishStatus: "draft",
-                    published: false,
-                  }))
-                }
-              />
-              <PublishOption
-                active={(draft.publishStatus ?? "published") === "review"}
-                title="На проверке"
-                hint="Команда смотрит, не публикуется"
-                onClick={() =>
-                  setDraft((d) => ({
-                    ...d,
-                    publishStatus: "review",
-                    published: false,
-                  }))
-                }
-              />
-              <PublishOption
-                active={(draft.publishStatus ?? "published") === "published"}
-                title="Опубликовано"
-                hint="Видно посетителям сайта"
-                onClick={() =>
-                  setDraft((d) => ({
-                    ...d,
-                    publishStatus: "published",
-                    published: true,
-                  }))
-                }
-              />
-              <PublishOption
-                active={draft.publishStatus === "hidden"}
-                title="Скрыто"
-                hint="Снято с публикации"
-                onClick={() =>
-                  setDraft((d) => ({
-                    ...d,
-                    publishStatus: "hidden",
-                    published: false,
-                  }))
-                }
-              />
+        {draft.source === "telegram" && (
+          <Field label="Источник">
+            <div
+              className="rounded-2xl px-3 py-2 text-[12px]"
+              style={{
+                background: "var(--dd-surface-soft)",
+                color: "var(--dd-ink-soft)",
+              }}
+            >
+              Событие пришло из Telegram. Проверьте текст и обложку перед
+              публикацией.
             </div>
-            <span className="dd-label">Видимость</span>
-            <div className="flex flex-wrap gap-2">
-              <PublishOption
-                active={(draft.visibility ?? "public") === "public"}
-                title="Публично"
-                hint="Полная карточка"
-                onClick={() =>
-                  setDraft((d) => ({ ...d, visibility: "public" }))
-                }
-              />
-              <PublishOption
-                active={draft.visibility === "members_hint"}
-                title="Только намёк"
-                hint="Дата, тип и кнопка Telegram"
-                onClick={() =>
-                  setDraft((d) => ({ ...d, visibility: "members_hint" }))
-                }
-              />
-              <PublishOption
-                active={draft.visibility === "private"}
-                title="Приватно"
-                hint="Только в admin"
-                onClick={() =>
-                  setDraft((d) => ({ ...d, visibility: "private" }))
-                }
-              />
-            </div>
-            {draft.source === "telegram" && (
-              <div
-                className="rounded-2xl px-3 py-2 text-[12px]"
-                style={{
-                  background: "var(--dd-surface-soft)",
-                  color: "var(--dd-ink-soft)",
-                }}
-              >
-                Событие пришло из Telegram. Проверьте текст и обложку перед
-                публикацией.
-              </div>
-            )}
-          </div>
-        </Field>
+          </Field>
+        )}
 
       </div>
 
@@ -520,43 +428,6 @@ function FitOption({
         minWidth: 140,
       }}
       aria-pressed={active}
-    >
-      <span style={{ fontWeight: 500 }}>{title}</span>
-      <span
-        style={{
-          color: active ? "rgba(255,255,255,0.72)" : "var(--dd-muted)",
-          fontSize: 11,
-          lineHeight: 1.3,
-        }}
-      >
-        {hint}
-      </span>
-    </button>
-  );
-}
-
-function PublishOption({
-  active,
-  onClick,
-  title,
-  hint,
-}: {
-  active: boolean;
-  onClick: () => void;
-  title: string;
-  hint: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className="flex flex-col gap-0.5 rounded-2xl px-3 py-2 text-left text-[12px] transition-colors"
-      style={{
-        background: active ? "var(--dd-ink)" : "var(--dd-surface-soft)",
-        color: active ? "#ffffff" : "var(--dd-ink)",
-        minWidth: 130,
-      }}
     >
       <span style={{ fontWeight: 500 }}>{title}</span>
       <span
