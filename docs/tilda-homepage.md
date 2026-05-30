@@ -18,7 +18,7 @@
 - CTA «Вступить в клуб».
 
 Технически это **внешний фронтенд** этого репозитория, развёрнутый, например,
-на `https://calendar.deardesigners.club`, и встроенный в Tilda через `<iframe>`.
+на `https://deardesigners-calendar.vercel.app`, и встроенный в Tilda через `<iframe>`.
 
 ## Режимы (краткая шпаргалка)
 
@@ -43,7 +43,7 @@ URL приложения определяет режим:
 
 ```html
 <iframe
-  src="https://calendar.deardesigners.club/homepage"
+  src="https://deardesigners-calendar.vercel.app/homepage"
   style="width:100%;min-height:1200px;border:0;border-radius:0;overflow:hidden;display:block;"
   loading="lazy"
   title="Календарь Дорогих дизайнеров"
@@ -54,7 +54,7 @@ URL приложения определяет режим:
 
 ```html
 <iframe
-  src="https://calendar.deardesigners.club/digest?month=2026-06"
+  src="https://deardesigners-calendar.vercel.app/digest?month=2026-06"
   style="width:100%;min-height:1000px;border:0;display:block;"
   loading="lazy"
 ></iframe>
@@ -64,7 +64,7 @@ URL приложения определяет режим:
 
 ```html
 <iframe
-  src="https://calendar.deardesigners.club/embed?compact=true&showPast=true"
+  src="https://deardesigners-calendar.vercel.app/embed?compact=true&showPast=true"
   style="width:100%;min-height:760px;border:0;display:block;"
   loading="lazy"
 ></iframe>

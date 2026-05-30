@@ -3,7 +3,17 @@
 Календарь сообщества «Дорогие дизайнеры» — это **самостоятельное web-приложение**,
 которое можно встроить **в любую страницу сайта на Tilda** (или любую другую CMS).
 
-Не обязательно делать его первым экраном. Можно поставить календарь:
+## Текущий публичный URL
+
+**`https://deardesigners-calendar.vercel.app`** — деплой на Vercel.
+
+В будущем планируется привязать `calendar.deardesigners.club` через CNAME →
+тогда iframe-снипеты ниже можно будет менять обратно на красивый домен без
+правок в Tilda. Пока используем vercel-URL.
+
+## Куда вставлять
+
+Не обязательно делать календарь первым экраном. Можно поставить:
 
 - на главную как hero-блок (`/homepage`),
 - на отдельную страницу «Календарь» (`/embed`),
@@ -33,7 +43,7 @@
 
 ```html
 <iframe
-  src="https://calendar.deardesigners.club/embed?month=2026-06&compact=true&showPast=true"
+  src="https://deardesigners-calendar.vercel.app/embed?month=2026-06&compact=true&showPast=true"
   style="width:100%;min-height:760px;border:0;border-radius:32px;overflow:hidden;display:block;"
   loading="lazy"
   title="Календарь Дорогих дизайнеров"
@@ -46,7 +56,7 @@
 
 ```html
 <iframe
-  src="https://calendar.deardesigners.club/homepage?month=2026-06"
+  src="https://deardesigners-calendar.vercel.app/homepage?month=2026-06"
   style="width:100%;min-height:1100px;border:0;border-radius:0;overflow:hidden;display:block;"
   loading="lazy"
   title="Календарь Дорогих дизайнеров"
@@ -59,7 +69,7 @@
 
 ```html
 <iframe
-  src="https://calendar.deardesigners.club/digest?month=2026-05&showTelegramLinks=true"
+  src="https://deardesigners-calendar.vercel.app/digest?month=2026-05&showTelegramLinks=true"
   style="width:100%;min-height:980px;border:0;border-radius:32px;overflow:hidden;display:block;"
   loading="lazy"
   title="Дайджест клуба за месяц"
